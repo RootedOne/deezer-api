@@ -91,7 +91,7 @@ def test_download_track_endpoint():
         
         mock_download.assert_called_once_with("123", quality="mp3")
         mock_copy.assert_called_once()
-        mock_rmtree.assert_called_once_with("/tmp/dummy_download_dir", ignore_errors=True)
+        mock_rmtree.assert_called_once_with(str(Path("/tmp/dummy_download_dir")), ignore_errors=True)
 
     # Clean up temp files
     try:
@@ -134,7 +134,7 @@ def test_download_album_endpoint():
         
         mock_download.assert_called_once_with("456", quality="flac")
         mock_zip.assert_called_once()
-        mock_rmtree.assert_called_once_with("/tmp/dummy_album_dir", ignore_errors=True)
+        mock_rmtree.assert_called_once_with(str(Path("/tmp/dummy_album_dir")), ignore_errors=True)
 
     try:
         os.remove("/tmp/dummy_song1.mp3")
@@ -357,6 +357,43 @@ def test_account_fallback_mechanism():
         download.DEEZER_TOKENS = original_tokens
         download.CURRENT_TOKEN_INDEX = original_index
 
+def test_details_endpoints():
+    """Verify track and album details metadata endpoints proxy correctly."""
+    mock_meta = {"id": "123", "title": "Test Title"}
+    with patch("main.get_deezer_metadata", return_value=mock_meta) as mock_get:
+        # Track details
+        resp = client.get("/api/details/track/123", headers={"X-API-Key": "test-api-key"})
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Test Title"
+        mock_get.assert_called_with("track", "123")
+        
+        # Album details
+        resp = client.get("/api/details/album/456", headers={"X-API-Key": "test-api-key"})
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Test Title"
+        mock_get.assert_called_with("album", "456")
+
+def test_download_manager_queue_flow():
+    """Verify download queueing and status endpoints work in memory."""
+    payload = {
+        "type": "track",
+        "id": "123",
+        "quality": "mp3",
+        "title": "Test Title",
+        "artist": "Test Artist",
+        "cover_url": "http://example.com/cover.jpg"
+    }
+    
+    with patch("main.download_manager.queue_track", return_value="track_123_abc") as mock_queue:
+        resp = client.post("/api/downloads/queue", json=payload, headers={"X-API-Key": "test-api-key"})
+        assert resp.status_code == 200
+        assert resp.json()["download_id"] == "track_123_abc"
+        mock_queue.assert_called_once_with("123", "mp3", "Test Title", "Test Artist", "http://example.com/cover.jpg")
+
+    resp = client.get("/api/downloads", headers={"X-API-Key": "test-api-key"})
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
+
 if __name__ == "__main__":
     print("Running isolated API integration tests...")
     try:
@@ -380,6 +417,10 @@ if __name__ == "__main__":
         print("  - test_download_album_fallback_mechanism: PASSED")
         test_account_fallback_mechanism()
         print("  - test_account_fallback_mechanism: PASSED")
+        test_details_endpoints()
+        print("  - test_details_endpoints: PASSED")
+        test_download_manager_queue_flow()
+        print("  - test_download_manager_queue_flow: PASSED")
         print("\nAll isolated API integration tests passed successfully!")
     except AssertionError as e:
         print(f"\nAssertion failed during testing: {e}")

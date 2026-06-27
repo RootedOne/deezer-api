@@ -43,98 +43,56 @@ A high-performance standalone REST API wrapper for the Telegram Music Downloader
 ### Option A: Automated Setup (Recommended)
 We provide an interactive command-line installer for Linux (Ubuntu/Debian) that sets up the virtual environment, installs dependencies, prompts for configuration values, and configures a systemd background service.
 
-To start the installer, execute:
-```bash
-./install.sh
+### 1. Quick Start (Recommended)
+
+You can use the provided startup scripts to automatically create a virtual environment, install dependencies, configure the environment, and launch the server.
+
+**Windows:**
+Double-click `start.bat` or run in terminal:
+```cmd
+start.bat
 ```
-Follow the interactive prompt menu:
-1. **Install**: Installs system requirements, builds the Python virtual environment (`.venv`), prompts for environment variables, and enables/starts the systemd service.
-2. **Update bot using latest git project files**: Fetches updates from Git (prompting to stash/discard local edits), reinstalls packages, and restarts the service.
-3. **Check logs**: Views or streams live service logs (`journalctl`).
-4. **Update .env**: Interactively modifies env values and restarts the service.
-5. **Fully remove**: Disables/deletes systemd files, removes `.venv`, and optionally wipes the project directory.
 
-### Option B: Manual Setup
-If you are on macOS or wish to run the API manually:
+**macOS / Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
 
-1. **Install requirements** in your local environment or virtual environment:
+> **Note**: On the first run, the script will automatically create a `.env` file from `.env.example`. It will pause and ask you to set your `DEEZER_TOKEN` (your ARL cookie) and your `API_KEY` before fully starting.
+
+### 2. Manual Setup
+
+If you prefer to set things up manually:
+
+1. **Install Packages**
+   Create a virtual environment and install dependencies:
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-2. **Configure environment**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your favorite text editor
+2. **Configure Environment (`.env`)**
+   Copy `.env.example` to `.env` in the root directory and configure it.
+   ```dotenv
+   # API Authorization
+   API_KEY=your-secret-api-token
+   
+   # Server Binding
+   API_HOST=0.0.0.0
+   API_PORT=8000
+   
+   # Deezer ARL Token
+   DEEZER_TOKEN=your-deezer-arl-cookie-here
    ```
 
-3. **Start the API server**:
+3. **Run the Server**
+   Launch the server programmatically:
    ```bash
    python3 main.py
    ```
-   The API will listen at `http://localhost:8000`. Access the interactive Swagger documentation at `http://localhost:8000/docs`.
-
----
-
-## ⚙️ Configuration Variables
-
-The API loads configurations from the `.env` file at startup. Below are the available variables:
-
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `API_KEY` | `dev-key` | Secret token passed in the `X-API-Key` header for authorization. |
-| `API_HOST` | `0.0.0.0` | Host IP address the Uvicorn server binds to. |
-| `API_PORT` | `8000` | Port number the Uvicorn server listens on. |
-| `FILE_MAX_AGE_SEC` | `3600` | Expiration limit of download links (e.g. 1 hour) before purging. |
-| `CLEANUP_INTERVAL_SEC` | `300` | Frequency in seconds (e.g. 5 minutes) of the cache cleanup loop. |
-| `DEEZER_TOKEN_1` | *Required* | Primary Deezer ARL cookie used to authenticate downloads. |
-| `DEEZER_TOKEN_2` | *Optional* | First backup Deezer ARL cookie for automatic failover. |
-| `DEEZER_TOKEN_N` | *Optional* | Additional fallback tokens (`DEEZER_TOKEN_3`, `DEEZER_TOKEN_4`, etc.). |
-
----
-
-## 📡 API Reference
-
-All requests require authorization. Include the API key in your request headers:
-```http
-X-API-Key: <your-secret-api-token>
-```
-
-### Search Endpoints
-
-| Endpoint | Method | Query Params | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/search` | `GET` | `q` *(Required)* | Concurrent search returning tracks, albums, and artists. |
-| `/api/search/tracks` | `GET` | `q` *(Required)* | Returns search results matching tracks only. |
-| `/api/search/albums` | `GET` | `q` *(Required)* | Returns search results matching albums only. |
-| `/api/search/artists` | `GET` | `q` *(Required)* | Returns search results matching artists only. |
-
-#### Unified Search Example:
-```bash
-curl -H "X-API-Key: dev-key" "http://localhost:8000/api/search?q=comfortably+numb"
-```
-**Response (200 OK)**:
-```json
-{
-  "query": "comfortably numb",
-  "tracks": [
-    {
-      "id": "12345",
-      "id_type": "track",
-      "title": "Comfortably Numb",
-      "img_url": "https://e-cdns-images.dzcdn.net/...",
-      "album": "The Wall",
-      "album_id": 999,
-      "artist": "Pink Floyd",
-      "preview_url": "https://..."
-    }
-  ],
-  "albums": [],
-  "artists": []
-}
-```
+   By default, the server will start listening at `http://0.0.0.0:8000`. You can check the autogenerated docs by visiting `http://localhost:8000/docs`.
 
 ---
 

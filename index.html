@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Downloader Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: rgba(17, 24, 39, 0.7);
+            --bg-card: rgba(30, 41, 59, 0.4);
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #ec4899;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glow-color: rgba(139, 92, 246, 0.15);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        header {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background-color: rgba(11, 15, 25, 0.8);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            -webkit-text-fill-color: initial;
+            background: var(--accent-gradient);
+            padding: 0.5rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            border: none;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #9b70ff 0%, #ff5cae 100%);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-field {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+
+        /* Search Section */
+        .search-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .search-subtitle {
+            color: var(--text-secondary);
+            max-width: 600px;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .search-container {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 1.1rem 1.5rem;
+            padding-left: 3.5rem;
+            padding-right: 7.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            outline: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 0.6rem;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-size: 0.95rem;
+        }
+
+        /* Quality Options Widget */
+        .preferences-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .quality-selector {
+            display: flex;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 0.25rem;
+            border-radius: 30px;
+        }
+
+        .quality-option {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .quality-option.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+
+        /* Results Containers */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .results-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        /* Compact Horizontal Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.1);
+        }
+
+        .card-cover-wrapper {
+            position: relative;
+            width: 80px;
+            min-width: 80px;
+            height: 80px;
+            background: #1e293b;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .card-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        .card:hover .card-cover {
+            transform: scale(1.08);
+        }
+
+        .card-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card-cover-wrapper:hover .card-overlay {
+            opacity: 1;
+        }
+
+        .play-preview-btn {
+            background: white;
+            color: var(--bg-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .play-preview-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .card-body {
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.2rem;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-subtitle {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.25rem;
+        }
+
+        .detail-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.05);
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .detail-tag i {
+            font-size: 0.65rem;
+        }
+
+        .detail-tag.explicit {
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.25);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            padding-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .card-actions .btn {
+            padding: 0.45rem 1rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        /* Notifications & Alerts */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 100;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-primary);
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--error); }
+        .toast.warning { border-left-color: var(--warning); }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        /* Audio Preview Sticky Player */
+        .preview-player {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 1.5rem;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 90;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+        }
+
+        .preview-player.active {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .preview-player-info {
+            font-size: 0.85rem;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preview-player-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .preview-player-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        /* Loading Skeletons */
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+
+        /* Animations */
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive adaptations */
+        @media(max-width: 768px) {
+            .search-title { font-size: 2rem; }
+            .header-actions span { display: none; }
+            .search-bar { padding-right: 4.5rem; }
+            .search-btn span { display: none; }
+            .search-btn i { margin: 0; }
+            .toast-container { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+            .downloads-drawer { width: 100%; right: -100%; }
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-secondary);
+            color: white;
+            border-radius: 50%;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: 0 2px 5px rgba(236, 72, 153, 0.4);
+        }
+
+        /* Downloads Drawer */
+        .downloads-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(11, 15, 25, 0.95);
+            border-left: 1px solid var(--border-color);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .downloads-drawer.active {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .drawer-close:hover {
+            color: var(--text-primary);
+        }
+
+        .drawer-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem 1.5rem 1.5rem 2.75rem; /* Larger left padding to fit the trash icon */
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .drawer-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        /* Download Queue Items */
+        .download-queue-item {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.75rem;
+            position: relative;
+            flex-direction: column;
+        }
+
+        .download-queue-item-meta {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .download-queue-item-cover {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .download-queue-item-details {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .download-queue-item-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .download-queue-item-artist {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .download-queue-item-status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .download-queue-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .download-queue-item-dismiss {
+            position: absolute;
+            top: 50%;
+            left: -2.25rem; /* Floats to the left, outside the card */
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.95rem;
+            padding: 0.4rem;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .download-queue-item-dismiss:hover {
+            color: var(--error);
+            transform: translateY(-50%) scale(1.15);
+        }
+
+        .download-queue-item-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .download-queue-item-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-gradient);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar.paused {
+            background: var(--warning);
+        }
+
+        .progress-bar.failed {
+            background: var(--error);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 15, 25, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 110;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .modal-close {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .modal-content {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .modal-body {
+            padding: 2.5rem 2rem 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .media-detail-header {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .media-detail-cover {
+            width: 140px;
+            height: 140px;
+            border-radius: 16px;
+            object-fit: cover;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .media-detail-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .media-detail-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .media-detail-artist {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .media-detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Detail Modal Tracklist */
+        .modal-tracklist-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem;
+        }
+
+        .modal-tracklist-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .modal-tracklist {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-track-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .modal-track-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .modal-track-number {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            width: 20px;
+            text-align: center;
+        }
+
+        .modal-track-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .modal-track-duration {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .modal-track-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-music"></i>
+            <span>SoundFlow</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="downloads-toggle-btn" style="position: relative;">
+                <i class="fa-solid fa-download"></i>
+                <span>Downloads</span>
+                <span class="badge" id="downloads-badge" style="display: none;">0</span>
+            </button>
+            <button class="btn" id="settings-toggle-btn">
+                <i class="fa-solid fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settings-panel">
+            <h3><i class="fa-solid fa-sliders"></i> Connection Settings</h3>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label for="setting-api-key">API Authentication Key</label>
+                    <input type="password" id="setting-api-key" class="input-field" placeholder="Enter API Key...">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+                <button class="btn btn-primary" id="settings-save-btn">Save Configurations</button>
+            </div>
+        </div>
+
+        <!-- Search Bar Section -->
+        <div class="search-section">
+            <h1 class="search-title">Discover & Download</h1>
+            <p class="search-subtitle">Search for your favorite tracks, albums, or artists and download them instantly in premium quality.</p>
+            
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" class="search-bar" id="search-input" placeholder="Search track name, album, artist...">
+                <button class="btn btn-primary search-btn" id="search-btn">
+                    <i class="fa-solid fa-search"></i>
+                    <span>Search</span>
+                </button>
+            </div>
+
+            <div class="preferences-bar">
+                <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Audio Quality:</span>
+                <div class="quality-selector" id="quality-selector">
+                    <div class="quality-option active" data-quality="mp3">MP3 (320kbps)</div>
+                    <div class="quality-option" data-quality="flac">FLAC (Lossless)</div>
+                    <div class="quality-option" data-quality="mp3_128">MP3 (128kbps)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Selection Navigation -->
+        <div class="tabs-nav" id="tabs-nav" style="display: none;">
+            <button class="tab-btn active" data-tab="all-results">All Results</button>
+            <button class="tab-btn" data-tab="tracks-results">Tracks</button>
+            <button class="tab-btn" data-tab="albums-results">Albums</button>
+        </div>
+
+        <!-- Search Results Tabs Content -->
+        <div id="all-results" class="tab-content">
+            <!-- Dynamic Category Headers will render here if unified search is active -->
+            <div id="unified-container" style="display: flex; flex-direction: column; gap: 2.5rem;"></div>
+        </div>
+
+        <div id="tracks-results" class="tab-content">
+            <div class="results-grid" id="tracks-grid"></div>
+        </div>
+
+        <div id="albums-results" class="tab-content">
+            <div class="results-grid" id="albums-grid"></div>
+        </div>
+
+    </div>
+
+    <!-- Sticky Audio Player -->
+    <div class="preview-player" id="preview-player">
+        <div class="preview-player-controls">
+            <button class="preview-player-btn" id="player-play-pause-btn">
+                <i class="fa-solid fa-pause"></i>
+            </button>
+        </div>
+        <div class="preview-player-info">
+            <div id="player-track-title" style="font-weight: 600;">Track Name</div>
+            <div id="player-track-artist" style="font-size:0.75rem; color:var(--text-secondary)">Artist Name</div>
+        </div>
+        <button class="toast-close" id="player-close-btn" style="margin-left: 0.5rem;">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Audio Element -->
+    <audio id="audio-preview-element" style="display: none;"></audio>
+
+    <!-- Media Details Modal -->
+    <div class="modal-overlay" id="details-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeDetailsModal()">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-content" id="modal-content">
+                <!-- Dynamic Content Renders Here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal" style="z-index: 200;">
+        <div class="modal-container" style="max-width: 400px; border-radius: 16px;">
+            <div class="modal-body" style="padding: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+                <i class="fa-solid fa-trash-can" style="font-size: 3rem; color: var(--error); margin-bottom: 0.5rem;"></i>
+                <h3 id="confirm-modal-title" style="font-weight: 700; margin: 0; font-size: 1.25rem;">Confirm Action</h3>
+                <p id="confirm-modal-desc" style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.4; margin: 0;"></p>
+                <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.5rem; width: 100%;">
+                    <button class="btn" id="confirm-modal-cancel" style="flex: 1; justify-content: center;">Cancel</button>
+                    <button class="btn btn-primary" id="confirm-modal-ok" style="flex: 1; justify-content: center; background: var(--error); border-color: var(--error); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Downloads Drawer -->
+    <div class="downloads-drawer" id="downloads-drawer">
+        <div class="drawer-header">
+            <h3 style="font-weight: 700; display:flex; align-items:center; gap:0.5rem; font-size:1.15rem;">
+                <i class="fa-solid fa-download" style="color:var(--accent-primary)"></i> Download Manager
+            </h3>
+            <button class="drawer-close" id="drawer-close-btn">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="drawer-content" id="downloads-list">
+            <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+                <i class="fa-solid fa-circle-info" style="font-size:2rem; margin-bottom:0.75rem;"></i>
+                <p>No active downloads.</p>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button class="btn" id="clear-completed-btn" style="width:100%; justify-content:center;">
+                <i class="fa-solid fa-broom"></i> Clear Finished
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables & state
+        const serverApiKey = "{{SERVER_API_KEY}}";
+        const state = {
+            apiKey: localStorage.getItem('api_key') || serverApiKey,
+            quality: 'mp3',
+            currentSearchQuery: '',
+            searchResults: null,
+            activePreviewTrackId: null
+        };
+
+        // DOM elements
+        const elements = {
+            settingsToggleBtn: document.getElementById('settings-toggle-btn'),
+            settingsPanel: document.getElementById('settings-panel'),
+            settingsApiKey: document.getElementById('setting-api-key'),
+            settingsSaveBtn: document.getElementById('settings-save-btn'),
+            searchInput: document.getElementById('search-input'),
+            searchBtn: document.getElementById('search-btn'),
+            qualitySelector: document.getElementById('quality-selector'),
+            tabsNav: document.getElementById('tabs-nav'),
+            tabButtons: document.querySelectorAll('.tab-btn'),
+            tabContents: document.querySelectorAll('.tab-content'),
+            unifiedContainer: document.getElementById('unified-container'),
+            tracksGrid: document.getElementById('tracks-grid'),
+            albumsGrid: document.getElementById('albums-grid'),
+            toastContainer: document.getElementById('toast-container'),
+            previewPlayer: document.getElementById('preview-player'),
+            playerPlayPauseBtn: document.getElementById('player-play-pause-btn'),
+            playerTrackTitle: document.getElementById('player-track-title'),
+            playerTrackArtist: document.getElementById('player-track-artist'),
+            playerCloseBtn: document.getElementById('player-close-btn'),
+            audioElement: document.getElementById('audio-preview-element'),
+            
+            // Downloads manager elements
+            downloadsToggleBtn: document.getElementById('downloads-toggle-btn'),
+            downloadsDrawer: document.getElementById('downloads-drawer'),
+            drawerCloseBtn: document.getElementById('drawer-close-btn'),
+            downloadsBadge: document.getElementById('downloads-badge'),
+            downloadsList: document.getElementById('downloads-list'),
+            clearCompletedBtn: document.getElementById('clear-completed-btn'),
+            detailsModal: document.getElementById('details-modal'),
+            modalContent: document.getElementById('modal-content')
+        };
+
+        // Initialize App
+        function init() {
+            // Event Listeners
+            elements.settingsToggleBtn.addEventListener('click', toggleSettings);
+            elements.settingsSaveBtn.addEventListener('click', saveSettings);
+            elements.searchBtn.addEventListener('click', performSearch);
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+
+            // Quality options listener
+            elements.qualitySelector.addEventListener('click', (e) => {
+                const option = e.target.closest('.quality-option');
+                if (!option) return;
+                document.querySelectorAll('.quality-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                state.quality = option.dataset.quality;
+                showToast('Quality Updated', `Downloads will target ${option.innerText}`, 'success');
+            });
+
+            // Tabs toggle listener
+            elements.tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.tabButtons.forEach(b => b.classList.remove('active'));
+                    elements.tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    const activeContent = document.getElementById(btn.dataset.tab);
+                    activeContent.classList.add('active');
+                });
+            });
+
+            // Preview player controls
+            elements.playerPlayPauseBtn.addEventListener('click', togglePreviewPlayback);
+            elements.playerCloseBtn.addEventListener('click', stopPreview);
+            elements.audioElement.addEventListener('ended', stopPreview);
+            
+            // Downloads drawer controls
+            elements.downloadsToggleBtn.addEventListener('click', toggleDownloadsDrawer);
+            elements.drawerCloseBtn.addEventListener('click', toggleDownloadsDrawer);
+            elements.clearCompletedBtn.addEventListener('click', clearCompletedDownloads);
+            
+            // Pre-populate settings key (show actual key if stored, otherwise show placeholder/empty to let user know it uses the server default)
+            elements.settingsApiKey.value = localStorage.getItem('api_key') || '';
+            elements.settingsApiKey.placeholder = "Using server default key...";
+            
+            // Check for downloads on load
+            pollDownloads();
+        }
+
+        // UI Handlers
+        function toggleSettings() {
+            elements.settingsPanel.classList.toggle('active');
+        }
+
+        function saveSettings() {
+            const keyVal = elements.settingsApiKey.value.trim();
+            if (keyVal) {
+                state.apiKey = keyVal;
+                localStorage.setItem('api_key', keyVal);
+                showToast('Settings Saved', 'API authentication key updated.', 'success');
+            } else {
+                state.apiKey = serverApiKey;
+                localStorage.removeItem('api_key');
+                elements.settingsApiKey.value = '';
+                elements.settingsApiKey.placeholder = "Using server default key...";
+                showToast('Settings Cleared', 'Reverted to the server default API key.', 'success');
+            }
+            elements.settingsPanel.classList.remove('active');
+        }
+
+        // Search flow
+        async function performSearch() {
+            const query = elements.searchInput.value.trim();
+            if (!query) {
+                showToast('Missing Keyword', 'Please enter a search query.', 'warning');
+                return;
+            }
+
+            state.currentSearchQuery = query;
+            stopPreview();
+            
+            // Show loading skeleton states
+            elements.tabsNav.style.display = 'none';
+            elements.unifiedContainer.innerHTML = renderSearchSkeletons();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            elements.tabButtons[0].classList.add('active');
+            elements.tabContents.forEach(c => c.classList.remove('active'));
+            elements.tabContents[0].classList.add('active');
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("Invalid or missing API key. Please open Settings and update it.");
+                    }
+                    throw new Error(`Search failed with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                state.searchResults = data;
+                
+                // Show Tabs Navigation
+                elements.tabsNav.style.display = 'flex';
+                
+                renderResults(data);
+            } catch (err) {
+                elements.unifiedContainer.innerHTML = `
+                    <div style="text-align:center; padding: 3rem 1rem; color:var(--error);">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                        <h3>Search Failed</h3>
+                        <p style="color:var(--text-secondary); margin-top: 0.5rem;">${err.message}</p>
+                    </div>
+                `;
+                showToast('Search Failed', err.message, 'error');
+            }
+        }
+
+        // Render functions
+        function renderSearchSkeletons() {
+            return `
+                <div>
+                    <div class="skeleton" style="height: 1.5rem; width: 200px; margin-bottom: 1rem; border-radius: 4px;"></div>
+                    <div class="results-grid">
+                        ${Array(6).fill(0).map(() => `
+                            <div class="card" style="height: 80px;">
+                                <div class="skeleton" style="width:80px; min-width:80px; height:80px;"></div>
+                                <div style="padding: 0.75rem 1rem; display:flex; flex-direction:column; justify-content:center; gap:0.35rem; flex-grow:1;">
+                                    <div class="skeleton" style="height:0.9rem; width:60%; border-radius:4px;"></div>
+                                    <div class="skeleton" style="height:0.75rem; width:40%; border-radius:4px;"></div>
+                                    <div style="display:flex; gap:0.4rem;">
+                                        <div class="skeleton" style="height:0.65rem; width:4rem; border-radius:4px;"></div>
+                                        <div class="skeleton" style="height:0.65rem; width:3rem; border-radius:4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResults(data) {
+            elements.unifiedContainer.innerHTML = '';
+            elements.tracksGrid.innerHTML = '';
+            elements.albumsGrid.innerHTML = '';
+
+            const hasTracks = data.tracks && data.tracks.length > 0;
+            const hasAlbums = data.albums && data.albums.length > 0;
+
+            if (!hasTracks && !hasAlbums) {
+                elements.unifiedContainer.innerHTML = `
+                    <div style="text-align:center; padding: 4rem 1rem;">
+                        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; margin-bottom: 1rem; color:var(--text-secondary);"></i>
+                        <h3>No results found</h3>
+                        <p style="color:var(--text-muted); margin-top: 0.5rem;">Try refining your keywords or check spelling.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build tracks
+            if (hasTracks) {
+                const tracksSection = document.createElement('div');
+                tracksSection.innerHTML = `
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1.25rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i class="fa-solid fa-music" style="color: var(--accent-primary)"></i> Tracks
+                    </h2>
+                    <div class="results-grid" id="unified-tracks-grid"></div>
+                `;
+                elements.unifiedContainer.appendChild(tracksSection);
+                
+                const unifiedTracksGrid = tracksSection.querySelector('#unified-tracks-grid');
+                
+                data.tracks.forEach(track => {
+                    const cardHtml = createTrackCard(track);
+                    unifiedTracksGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    elements.tracksGrid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
+
+            // Build albums
+            if (hasAlbums) {
+                const albumsSection = document.createElement('div');
+                albumsSection.innerHTML = `
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1.25rem; margin-top: 1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i class="fa-solid fa-compact-disc" style="color: var(--accent-secondary)"></i> Albums
+                    </h2>
+                    <div class="results-grid" id="unified-albums-grid"></div>
+                `;
+                elements.unifiedContainer.appendChild(albumsSection);
+                
+                const unifiedAlbumsGrid = albumsSection.querySelector('#unified-albums-grid');
+                
+                data.albums.forEach(album => {
+                    const cardHtml = createAlbumCard(album);
+                    unifiedAlbumsGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    elements.albumsGrid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            const m = Math.floor(seconds / 60);
+            const s = String(seconds % 60).padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function createTrackCard(track) {
+            const coverUrl = track.img_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            const previewBtnHtml = track.preview_url ? `
+                <div class="card-overlay">
+                    <button class="play-preview-btn" onclick="event.stopPropagation(); playPreview('${track.id}', '${escapeHtml(track.title)}', '${escapeHtml(track.artist)}', '${track.preview_url}')">
+                        <i class="fa-solid fa-play" id="play-icon-${track.id}"></i>
+                    </button>
+                </div>
+            ` : '';
+
+            const durationTag = track.duration ? `<span class="detail-tag"><i class="fa-solid fa-clock"></i>${formatDuration(track.duration)}</span>` : '';
+            const explicitTag = track.explicit_lyrics ? `<span class="detail-tag explicit"><i class="fa-solid fa-e"></i>Explicit</span>` : '';
+
+            return `
+                <div class="card" id="track-card-${track.id}">
+                    <div class="card-cover-wrapper" onclick="openDetails('track', '${track.id}')" style="cursor:pointer;">
+                        <img src="${coverUrl}" class="card-cover" alt="${escapeHtml(track.title)}" loading="lazy">
+                        ${previewBtnHtml}
+                    </div>
+                    <div class="card-body" onclick="openDetails('track', '${track.id}')" style="cursor:pointer;">
+                        <div class="card-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</div>
+                        <div class="card-subtitle" title="${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</div>
+                        <div class="card-details">
+                            <span class="detail-tag"><i class="fa-solid fa-compact-disc"></i>${escapeHtml(track.album || 'Unknown')}</span>
+                            ${durationTag}
+                            ${explicitTag}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); downloadItem('track', '${track.id}', this)">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createAlbumCard(album) {
+            const coverUrl = album.img_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            const trackCountTag = album.nb_tracks ? `<span class="detail-tag"><i class="fa-solid fa-list-ol"></i>${album.nb_tracks} tracks</span>` : '';
+            const releaseDateTag = album.release_date ? `<span class="detail-tag"><i class="fa-solid fa-calendar"></i>${album.release_date}</span>` : '';
+            const recordTypeTag = album.record_type ? `<span class="detail-tag"><i class="fa-solid fa-tag"></i>${album.record_type.charAt(0).toUpperCase() + album.record_type.slice(1)}</span>` : '';
+            const explicitTag = album.explicit_lyrics ? `<span class="detail-tag explicit"><i class="fa-solid fa-e"></i>Explicit</span>` : '';
+
+            return `
+                <div class="card" id="album-card-${album.id}">
+                    <div class="card-cover-wrapper" onclick="openDetails('album', '${album.id}')" style="cursor:pointer;">
+                        <img src="${coverUrl}" class="card-cover" alt="${escapeHtml(album.album || album.title)}" loading="lazy">
+                    </div>
+                    <div class="card-body" onclick="openDetails('album', '${album.id}')" style="cursor:pointer;">
+                        <div class="card-title" title="${escapeHtml(album.album || album.title)}">${escapeHtml(album.album || album.title)}</div>
+                        <div class="card-subtitle" title="${escapeHtml(album.artist)}">${escapeHtml(album.artist)}</div>
+                        <div class="card-details">
+                            ${trackCountTag}
+                            ${releaseDateTag}
+                            ${recordTypeTag}
+                            ${explicitTag}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); downloadItem('album', '${album.id}', this)" style="background:linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)">
+                            <i class="fa-solid fa-file-zipper"></i>
+                            <span>ZIP</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Preview playback control
+        function playPreview(trackId, title, artist, previewUrl) {
+            if (state.activePreviewTrackId === trackId) {
+                togglePreviewPlayback();
+                return;
+            }
+
+            // Reset current icon
+            if (state.activePreviewTrackId) {
+                const prevIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (prevIcon) prevIcon.className = 'fa-solid fa-play';
+            }
+
+            state.activePreviewTrackId = trackId;
+            elements.audioElement.src = previewUrl;
+            elements.audioElement.play();
+
+            elements.playerTrackTitle.innerText = title;
+            elements.playerTrackArtist.innerText = artist;
+            elements.previewPlayer.classList.add('active');
+            elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            
+            const currIcon = document.getElementById(`play-icon-${trackId}`);
+            if (currIcon) currIcon.className = 'fa-solid fa-pause';
+        }
+
+        function togglePreviewPlayback() {
+            if (elements.audioElement.paused) {
+                elements.audioElement.play();
+                elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-pause';
+            } else {
+                elements.audioElement.pause();
+                elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-play';
+            }
+        }
+
+        function stopPreview() {
+            elements.audioElement.pause();
+            elements.audioElement.src = '';
+            elements.previewPlayer.classList.remove('active');
+            if (state.activePreviewTrackId) {
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-play';
+            }
+            state.activePreviewTrackId = null;
+        }
+
+        // Media details modal opener
+        async function openDetails(type, itemId) {
+            const modal = elements.detailsModal;
+            const content = elements.modalContent;
+            
+            content.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:250px; color:var(--accent-primary);">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size:2.5rem;"></i>
+                </div>
+            `;
+            modal.classList.add('active');
+
+            try {
+                const response = await fetch(`/api/details/${type}/${itemId}`, {
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+                if (!response.ok) throw new Error(`Details endpoint returned status ${response.status}`);
+                const data = await response.json();
+                
+                if (type === 'track') {
+                    renderTrackDetails(data);
+                } else {
+                    renderAlbumDetails(data);
+                }
+            } catch (err) {
+                content.innerHTML = `
+                    <div style="text-align:center; padding: 3rem 1rem; color:var(--error);">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                        <h3>Error Loading Details</h3>
+                        <p style="color:var(--text-secondary); margin-top: 0.5rem;">${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeDetailsModal() {
+            elements.detailsModal.classList.remove('active');
+        }
+
+        function renderTrackDetails(track) {
+            const coverUrl = track.album?.cover_medium || track.album?.cover_big || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            const durationText = formatDuration(track.duration);
+            const explicitTag = track.explicit_lyrics ? `<span class="detail-tag explicit"><i class="fa-solid fa-e"></i>Explicit</span>` : '';
+            const bpmTag = track.bpm ? `<span class="detail-tag"><i class="fa-solid fa-heartbeat"></i>${track.bpm} BPM</span>` : '';
+            const rankTag = track.rank ? `<span class="detail-tag"><i class="fa-solid fa-star"></i>Rank: ${track.rank.toLocaleString()}</span>` : '';
+            
+            elements.modalContent.innerHTML = `
+                <div class="modal-body">
+                    <div class="media-detail-header">
+                        <img src="${coverUrl}" class="media-detail-cover" alt="${escapeHtml(track.title)}">
+                        <div class="media-detail-info">
+                            <div class="media-detail-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</div>
+                            <div class="media-detail-artist">${escapeHtml(track.artist?.name)}</div>
+                            <div class="media-detail-meta">
+                                <span class="detail-tag"><i class="fa-solid fa-compact-disc"></i>Album: ${escapeHtml(track.album?.title || 'Unknown')}</span>
+                                <span class="detail-tag"><i class="fa-solid fa-clock"></i>${durationText}</span>
+                                ${explicitTag}
+                                ${bpmTag}
+                                ${rankTag}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem; border-top:1px solid var(--border-color); padding-top:1.5rem;">
+                        <h4 style="font-weight:700; font-size:1rem;">Download Track</h4>
+                        <div class="preferences-bar" style="justify-content: flex-start; margin:0;">
+                            <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Select Quality:</span>
+                            <div class="quality-selector" id="modal-quality-selector">
+                                <div class="quality-option active" data-quality="mp3">MP3 (320kbps)</div>
+                                <div class="quality-option" data-quality="flac">FLAC</div>
+                                <div class="quality-option" data-quality="mp3_128">MP3 (128kbps)</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="modal-download-btn" style="width:100%; justify-content:center; padding:0.8rem;" onclick="queueDownload('track', '${track.id}', document.getElementById('modal-quality-selector').querySelector('.quality-option.active').dataset.quality, '${escapeHtml(track.title)}', '${escapeHtml(track.artist?.name)}', '${coverUrl}')">
+                            <i class="fa-solid fa-download"></i> Enqueue Download
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Quality selector inside modal
+            const selector = document.getElementById('modal-quality-selector');
+            selector.addEventListener('click', (e) => {
+                const opt = e.target.closest('.quality-option');
+                if (!opt) return;
+                selector.querySelectorAll('.quality-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+            });
+        }
+
+        function renderAlbumDetails(album) {
+            const coverUrl = album.cover_medium || album.cover_big || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            const trackCountTag = album.nb_tracks ? `<span class="detail-tag"><i class="fa-solid fa-list-ol"></i>${album.nb_tracks} tracks</span>` : '';
+            const releaseDateTag = album.release_date ? `<span class="detail-tag"><i class="fa-solid fa-calendar"></i>Released: ${album.release_date}</span>` : '';
+            const labelTag = album.label ? `<span class="detail-tag"><i class="fa-solid fa-tag"></i>Label: ${escapeHtml(album.label)}</span>` : '';
+            const explicitTag = album.explicit_lyrics ? `<span class="detail-tag explicit"><i class="fa-solid fa-e"></i>Explicit</span>` : '';
+
+            // Generate tracklist rows HTML
+            let tracklistHtml = '';
+            if (album.tracks && album.tracks.data && album.tracks.data.length > 0) {
+                tracklistHtml = album.tracks.data.map((track, index) => {
+                    const rowDuration = formatDuration(track.duration);
+                    const playBtn = track.preview ? `
+                        <button class="play-preview-btn" style="width:28px; height:28px; font-size:0.75rem;" onclick="event.stopPropagation(); playPreview('${track.id}', '${escapeHtml(track.title)}', '${escapeHtml(album.artist?.name)}', '${track.preview}')">
+                            <i class="fa-solid fa-play" id="play-icon-${track.id}"></i>
+                        </button>
+                    ` : '';
+                    return `
+                        <div class="modal-track-row">
+                            <div class="modal-track-number">${index + 1}</div>
+                            <div class="modal-track-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</div>
+                            <div class="modal-track-duration">${rowDuration}</div>
+                            <div class="modal-track-actions">
+                                ${playBtn}
+                                <button class="download-queue-item-btn" title="Download track" onclick="event.stopPropagation(); queueDownload('track', '${track.id}', state.quality, '${escapeHtml(track.title)}', '${escapeHtml(album.artist?.name)}', '${coverUrl}')">
+                                    <i class="fa-solid fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                tracklistHtml = `<div style="text-align:center; color:var(--text-muted); font-size:0.9rem; padding:1rem;">No tracks found inside this album.</div>`;
+            }
+
+            elements.modalContent.innerHTML = `
+                <div class="modal-body">
+                    <div class="media-detail-header">
+                        <img src="${coverUrl}" class="media-detail-cover" alt="${escapeHtml(album.title)}">
+                        <div class="media-detail-info">
+                            <div class="media-detail-title" title="${escapeHtml(album.title)}">${escapeHtml(album.title)}</div>
+                            <div class="media-detail-artist">${escapeHtml(album.artist?.name)}</div>
+                            <div class="media-detail-meta">
+                                ${trackCountTag}
+                                ${releaseDateTag}
+                                ${labelTag}
+                                ${explicitTag}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem; border-top:1px solid var(--border-color); padding-top:1.5rem;">
+                        <h4 style="font-weight:700; font-size:1rem;">Download Album (ZIP)</h4>
+                        <div class="preferences-bar" style="justify-content: flex-start; margin:0;">
+                            <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Select Quality:</span>
+                            <div class="quality-selector" id="modal-quality-selector">
+                                <div class="quality-option active" data-quality="mp3">MP3 (320kbps)</div>
+                                <div class="quality-option" data-quality="flac">FLAC</div>
+                                <div class="quality-option" data-quality="mp3_128">MP3 (128kbps)</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="modal-download-btn" style="width:100%; justify-content:center; padding:0.8rem; background:linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)" onclick="queueDownload('album', '${album.id}', document.getElementById('modal-quality-selector').querySelector('.quality-option.active').dataset.quality, '${escapeHtml(album.title)}', '${escapeHtml(album.artist?.name)}', '${coverUrl}')">
+                            <i class="fa-solid fa-file-zipper"></i> Enqueue ZIP Download
+                        </button>
+                    </div>
+
+                    <div class="modal-tracklist-section">
+                        <h4 class="modal-tracklist-title"><i class="fa-solid fa-list"></i> Album Tracks</h4>
+                        <div class="modal-tracklist">
+                            ${tracklistHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Quality selector inside modal
+            const selector = document.getElementById('modal-quality-selector');
+            selector.addEventListener('click', (e) => {
+                const opt = e.target.closest('.quality-option');
+                if (!opt) return;
+                selector.querySelectorAll('.quality-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+            });
+        }
+
+        // Queue a new download task
+        async function queueDownload(type, itemId, quality, title, artist, coverUrl) {
+            try {
+                showToast('Queueing Download', `Adding "${title}" to queue...`, 'warning');
+                const response = await fetch('/api/downloads/queue', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-API-Key': state.apiKey
+                    },
+                    body: JSON.stringify({ type, id: itemId, quality, title, artist, cover_url: coverUrl })
+                });
+                if (!response.ok) {
+                    if (response.status === 401) throw new Error("Invalid API Key");
+                    throw new Error(`Queue failed with status ${response.status}`);
+                }
+                const result = await response.json();
+                showToast('Added to Queue', `"${title}" has been successfully queued.`, 'success');
+                
+                // Open the downloads drawer to show progress
+                elements.downloadsDrawer.classList.add('active');
+                
+                // Trigger polling loop
+                startDownloadsPolling();
+            } catch (err) {
+                showToast('Queue Failed', err.message, 'error');
+            }
+        }
+
+        // Downloads queue polling manager
+        let pollingInterval = null;
+        const triggeredDownloads = new Set(); // Track items we triggered browser downloads for
+
+        function startDownloadsPolling() {
+            if (pollingInterval) return;
+            pollDownloads();
+            pollingInterval = setInterval(pollDownloads, 1000);
+        }
+
+        function stopDownloadsPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        async function pollDownloads() {
+            try {
+                const response = await fetch('/api/downloads', {
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+                if (!response.ok) throw new Error("Failed to fetch downloads list");
+                const list = await response.json();
+                
+                renderDownloadsList(list);
+                
+                // Check if any downloads are active
+                const hasActive = list.some(item => 
+                    item.status === 'queued' || item.status === 'downloading' || item.status === 'paused'
+                );
+                
+                // Update badge count
+                const activeCount = list.filter(item => 
+                    item.status === 'queued' || item.status === 'downloading'
+                ).length;
+                
+                if (activeCount > 0) {
+                    elements.downloadsBadge.innerText = activeCount;
+                    elements.downloadsBadge.style.display = 'block';
+                } else {
+                    elements.downloadsBadge.style.display = 'none';
+                }
+                
+                // Trigger dynamic browser download on completion
+                list.forEach(item => {
+                    if (item.status === 'completed' && item.download_url && !triggeredDownloads.has(item.id)) {
+                        triggeredDownloads.add(item.id);
+                        triggerBrowserDownload(item.title, item.download_url);
+                    }
+                });
+
+                if (hasActive) {
+                    startDownloadsPolling();
+                } else {
+                    stopDownloadsPolling();
+                }
+            } catch (err) {
+                console.error("Error polling downloads:", err);
+            }
+        }
+
+        function triggerBrowserDownload(title, url) {
+            showToast('Download Ready', `Your download for "${title}" is ready and starting!`, 'success');
+            const a = document.createElement('a');
+            a.href = url;
+            a.setAttribute('download', '');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function renderDownloadsList(list) {
+            if (!list || list.length === 0) {
+                elements.downloadsList.innerHTML = `
+                    <div style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+                        <i class="fa-solid fa-circle-info" style="font-size:2rem; margin-bottom:0.75rem;"></i>
+                        <p>No active downloads.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            elements.downloadsList.innerHTML = list.map(item => {
+                const isAlbum = item.type === 'album';
+                const typeIcon = isAlbum ? 'fa-file-zipper' : 'fa-music';
+                const qualityText = item.quality ? item.quality.toUpperCase() : 'AUTO';
+                
+                // Build status text
+                let statusLabel = '';
+                let barClass = '';
+                if (item.status === 'queued') {
+                    statusLabel = 'Queued';
+                } else if (item.status === 'downloading') {
+                    statusLabel = `Downloading (${item.progress}%)`;
+                } else if (item.status === 'paused') {
+                    statusLabel = 'Paused';
+                    barClass = 'paused';
+                } else if (item.status === 'completed') {
+                    statusLabel = 'Completed';
+                } else if (item.status === 'failed') {
+                    statusLabel = 'Failed';
+                    barClass = 'failed';
+                } else if (item.status === 'cancelled') {
+                    statusLabel = 'Cancelled';
+                    barClass = 'failed';
+                }
+
+                // Render speed & remaining time if downloading
+                let speedEtaText = '';
+                if (item.speed && item.status === 'downloading') {
+                    let speedFormatted = '';
+                    if (item.speed > 1024 * 1024) {
+                        speedFormatted = (item.speed / (1024 * 1024)).toFixed(1) + ' MB/s';
+                    } else if (item.speed > 1024) {
+                        speedFormatted = (item.speed / 1024).toFixed(0) + ' KB/s';
+                    } else {
+                        speedFormatted = item.speed + ' B/s';
+                    }
+
+                    let etaFormatted = '';
+                    if (item.eta !== null && item.eta !== undefined) {
+                        const eta = item.eta;
+                        if (eta < 60) {
+                            etaFormatted = eta + 's remaining';
+                        } else if (eta < 3600) {
+                            etaFormatted = Math.floor(eta / 60) + 'm ' + (eta % 60) + 's remaining';
+                        } else {
+                            etaFormatted = Math.floor(eta / 3600) + 'h ' + Math.floor((eta % 3600) / 60) + 'm remaining';
+                        }
+                    } else {
+                        etaFormatted = 'calculating...';
+                    }
+
+                    speedEtaText = ` &bull; ${speedFormatted} &bull; ${etaFormatted}`;
+                }
+
+                // Controls based on status
+                let controlButtons = '';
+                if (item.status === 'queued' || item.status === 'downloading') {
+                    controlButtons = `
+                        <button class="download-queue-item-btn" title="Pause" onclick="controlDownload('${item.id}', 'pause')">
+                            <i class="fa-solid fa-pause"></i>
+                        </button>
+                        <button class="download-queue-item-btn" title="Cancel" onclick="controlDownload('${item.id}', 'cancel')">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    `;
+                } else if (item.status === 'paused') {
+                    controlButtons = `
+                        <button class="download-queue-item-btn" title="Resume" onclick="controlDownload('${item.id}', 'resume')">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button class="download-queue-item-btn" title="Cancel" onclick="controlDownload('${item.id}', 'cancel')">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    `;
+                } else if (item.status === 'completed') {
+                    controlButtons = `
+                        <a href="${item.download_url}" download class="download-queue-item-btn" title="Download file again" style="color:var(--success);">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                    `;
+                } else if (item.status === 'failed' || item.status === 'cancelled') {
+                    controlButtons = `
+                        <button class="download-queue-item-btn" title="Retry" onclick="queueDownload('${item.type}', '${item.item_id}', '${item.quality}', '${escapeHtml(item.title)}', '${escapeHtml(item.artist)}', '${item.cover_url}')">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    `;
+                }
+
+                const errorMsg = item.error ? `<div style="font-size:0.7rem; color:var(--error); margin-top:0.25rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(item.error)}">Error: ${escapeHtml(item.error)}</div>` : '';
+
+                return `
+                    <div class="download-queue-item" id="queue-item-${item.id}">
+                        <button class="download-queue-item-dismiss" title="Dismiss" onclick="event.stopPropagation(); dismissDownload('${item.id}', '${item.status}', '${escapeHtml(item.title)}')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        <div class="download-queue-item-meta">
+                            <img src="${item.cover_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop'}" class="download-queue-item-cover" alt="">
+                            <div class="download-queue-item-details">
+                                <div class="download-queue-item-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>
+                                <div class="download-queue-item-artist" title="${escapeHtml(item.artist)}">${escapeHtml(item.artist)}</div>
+                                <div class="download-queue-item-status-row">
+                                    <span><i class="fa-solid ${typeIcon}"></i> ${qualityText} &bull; ${statusLabel}${speedEtaText}</span>
+                                </div>
+                                ${errorMsg}
+                            </div>
+                            <div class="download-queue-item-actions">
+                                ${controlButtons}
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar ${barClass}" style="width: ${item.progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function controlDownload(downloadId, action) {
+            try {
+                const response = await fetch(`/api/downloads/${downloadId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+                if (!response.ok) throw new Error(`${action} failed`);
+                pollDownloads();
+            } catch (err) {
+                showToast('Action Failed', err.message, 'error');
+            }
+        }
+
+        function showCustomConfirm(title, desc, confirmButtonText = 'Confirm') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirm-modal');
+                const titleEl = document.getElementById('confirm-modal-title');
+                const descEl = document.getElementById('confirm-modal-desc');
+                const cancelBtn = document.getElementById('confirm-modal-cancel');
+                const okBtn = document.getElementById('confirm-modal-ok');
+                
+                titleEl.innerText = title;
+                descEl.innerText = desc;
+                okBtn.innerText = confirmButtonText;
+                
+                modal.classList.add('active');
+                
+                const cleanup = (result) => {
+                    modal.classList.remove('active');
+                    cancelBtn.onclick = null;
+                    okBtn.onclick = null;
+                    resolve(result);
+                };
+                
+                cancelBtn.onclick = () => cleanup(false);
+                okBtn.onclick = () => cleanup(true);
+            });
+        }
+
+        async function dismissDownload(downloadId, status, title) {
+            let confirmTitle = '';
+            let confirmDesc = '';
+            let apiEndpoint = '';
+            let confirmBtnText = 'Remove';
+            
+            if (status === 'queued' || status === 'downloading' || status === 'paused') {
+                confirmTitle = 'Cancel Download';
+                confirmDesc = `Are you sure you want to cancel and remove "${title}"?`;
+                apiEndpoint = `/api/downloads/${downloadId}/cancel`;
+                confirmBtnText = 'Cancel & Remove';
+            } else {
+                confirmTitle = 'Remove Download';
+                confirmDesc = `Remove "${title}" from the downloads list?`;
+                apiEndpoint = `/api/downloads/${downloadId}/delete`;
+            }
+            
+            const confirmed = await showCustomConfirm(confirmTitle, confirmDesc, confirmBtnText);
+            if (!confirmed) return;
+            
+            try {
+                // If it is active, cancel it first
+                if (status === 'queued' || status === 'downloading' || status === 'paused') {
+                    const cancelResponse = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'X-API-Key': state.apiKey }
+                    });
+                    if (!cancelResponse.ok) throw new Error("Cancel failed");
+                }
+                
+                // Then call delete on server
+                const deleteResponse = await fetch(`/api/downloads/${downloadId}/delete`, {
+                    method: 'POST',
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+                if (!deleteResponse.ok) throw new Error("Delete failed");
+                
+                showToast('Removed Download', `"${title}" has been removed.`, 'success');
+                pollDownloads();
+            } catch (err) {
+                showToast('Action Failed', err.message, 'error');
+            }
+        }
+
+        async function clearCompletedDownloads() {
+            try {
+                const response = await fetch('/api/downloads/clear', {
+                    method: 'POST',
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+                if (!response.ok) throw new Error("Failed to clear downloads");
+                pollDownloads();
+                showToast('Cleared Manager', 'Finished downloads cleared from queue.', 'success');
+            } catch (err) {
+                showToast('Action Failed', err.message, 'error');
+            }
+        }
+
+        function toggleDownloadsDrawer() {
+            elements.downloadsDrawer.classList.toggle('active');
+            if (elements.downloadsDrawer.classList.contains('active')) {
+                pollDownloads();
+            }
+        }
+
+        // Download Action
+        async function downloadItem(type, itemId, buttonElement) {
+            // Find card details to prefill details
+            const card = document.getElementById(`${type}-card-${itemId}`);
+            let title = 'Media';
+            let artist = 'Artist';
+            let coverUrl = '';
+            
+            if (card) {
+                const titleEl = card.querySelector('.card-title');
+                const artistEl = card.querySelector('.card-subtitle');
+                const imgEl = card.querySelector('.card-cover');
+                if (titleEl) title = titleEl.innerText;
+                if (artistEl) artist = artistEl.innerText;
+                if (imgEl) coverUrl = imgEl.src;
+            }
+            
+            await queueDownload(type, itemId, state.quality, title, artist, coverUrl);
+        }
+
+        // Helper: toast notifications
+        function showToast(title, desc, type = 'success') {
+            const toastId = `toast-${Date.now()}`;
+            const iconMap = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                warning: 'fa-info-circle'
+            };
+
+            const toastHtml = `
+                <div class="toast ${type}" id="${toastId}">
+                    <button class="toast-close" onclick="document.getElementById('${toastId}').remove()">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                    <i class="fa-solid ${iconMap[type]}" style="font-size:1.1rem; margin-top:0.1rem; color:var(--${type})"></i>
+                    <div class="toast-content">
+                        <div class="toast-title">${escapeHtml(title)}</div>
+                        <div class="toast-desc">${escapeHtml(desc)}</div>
+                    </div>
+                </div>
+            `;
+
+            elements.toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                const toastEl = document.getElementById(toastId);
+                if (toastEl) toastEl.remove();
+            }, 5000);
+        }
+
+        // Helper: escape HTML tags
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Start initialization
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

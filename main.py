@@ -26,7 +26,9 @@ if LOCAL_TOKEN_ENV.exists():
 
 # FastAPI imports
 from fastapi import FastAPI, Header, HTTPException, status, Depends, Request, Query
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 # 3. Local module imports (completely isolated)
 from utils import TMP_DIR
@@ -39,6 +41,7 @@ from dl_utils.deezer_download import (
 )
 import dl_utils.deezer_download as deezer_download
 from download import download_track, download_album, DEFAULT_QUALITY
+from dl_utils.download_manager import download_manager
 
 # Configure self-contained public downloads directory under api/tmp
 PUBLIC_DOWNLOADS_DIR = API_DIR / "tmp" / "public_downloads"
@@ -103,6 +106,22 @@ async def verify_api_key(x_api_key: str = Header(None)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing API Key",
         )
+
+# Serve root web dashboard UI
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    index_file = API_DIR / "index.html"
+    if not index_file.exists():
+        return HTMLResponse("index.html not found", status_code=404)
+    with open(index_file, "r", encoding="utf-8") as f:
+        content = f.read()
+        content = content.replace("{{SERVER_API_KEY}}", API_KEY)
+        return HTMLResponse(content)
+
+# Key hint helper endpoint for frontend to prefill the key if running locally with default credentials
+@app.get("/api/key-hint")
+async def get_key_hint():
+    return {"default_key": API_KEY if API_KEY == "dev-key" else None}
 
 # Mount static downloads directory
 app.mount("/static", StaticFiles(directory=str(PUBLIC_DOWNLOADS_DIR)), name="static")
@@ -349,6 +368,118 @@ async def download_album_endpoint(
             )
         finally:
             deezer_download.sound_format = original_format
+
+class QueueRequest(BaseModel):
+    type: str  # "track" or "album"
+    id: str
+    quality: str
+    title: str
+    artist: str
+    cover_url: str
+
+async def get_deezer_metadata(item_type: str, item_id: str):
+    """Fetch metadata from Deezer public API using session."""
+    def _fetch():
+        if deezer_download.session:
+            resp = deezer_download.session.get(f"https://api.deezer.com/{item_type}/{item_id}")
+        else:
+            import requests
+            resp = requests.get(f"https://api.deezer.com/{item_type}/{item_id}")
+        resp.raise_for_status()
+        return resp.json()
+    try:
+        return await asyncio.to_thread(_fetch)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch {item_type} details from Deezer API: {e}"
+        )
+
+@app.get("/api/details/track/{track_id}")
+async def track_details_endpoint(track_id: str, _=Depends(verify_api_key)):
+    """Fetch track details from Deezer API."""
+    return await get_deezer_metadata("track", track_id)
+
+@app.get("/api/details/album/{album_id}")
+async def album_details_endpoint(album_id: str, _=Depends(verify_api_key)):
+    """Fetch album details from Deezer API (includes tracklist)."""
+    return await get_deezer_metadata("album", album_id)
+
+@app.post("/api/downloads/queue")
+async def queue_download_endpoint(req: QueueRequest, _=Depends(verify_api_key)):
+    """Queue a track or album download."""
+    if req.type == "track":
+        download_id = download_manager.queue_track(
+            req.id, req.quality, req.title, req.artist, req.cover_url
+        )
+    elif req.type == "album":
+        download_id = download_manager.queue_album(
+            req.id, req.quality, req.title, req.artist, req.cover_url
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid download type. Must be 'track' or 'album'"
+        )
+    return {"status": "success", "download_id": download_id}
+
+@app.get("/api/downloads")
+async def get_downloads_endpoint(_=Depends(verify_api_key)):
+    """Get status of all downloads in manager."""
+    return [
+        item.to_dict() for item in download_manager.items.values()
+        if item.parent_id is None
+    ]
+
+@app.post("/api/downloads/{download_id}/pause")
+async def pause_download_endpoint(download_id: str, _=Depends(verify_api_key)):
+    """Pause an active download."""
+    success = download_manager.pause_download(download_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Download not found or cannot be paused."
+        )
+    return {"status": "success", "download_id": download_id}
+
+@app.post("/api/downloads/{download_id}/resume")
+async def resume_download_endpoint(download_id: str, _=Depends(verify_api_key)):
+    """Resume a paused download."""
+    success = download_manager.resume_download(download_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Download not found or cannot be resumed."
+        )
+    return {"status": "success", "download_id": download_id}
+
+@app.post("/api/downloads/{download_id}/cancel")
+async def cancel_download_endpoint(download_id: str, _=Depends(verify_api_key)):
+    """Cancel an active or paused download."""
+    success = download_manager.cancel_download(download_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Download not found or cannot be cancelled."
+        )
+    return {"status": "success", "download_id": download_id}
+
+@app.post("/api/downloads/clear")
+async def clear_downloads_endpoint(_=Depends(verify_api_key)):
+    """Clear completed/failed downloads."""
+    download_manager.clear_downloads()
+    return {"status": "success"}
+
+@app.post("/api/downloads/{download_id}/delete")
+async def delete_download_endpoint(download_id: str, _=Depends(verify_api_key)):
+    """Delete a download from the manager."""
+    success = download_manager.delete_download(download_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Download not found."
+        )
+    return {"status": "success", "download_id": download_id}
 
 if __name__ == "__main__":
     import uvicorn
