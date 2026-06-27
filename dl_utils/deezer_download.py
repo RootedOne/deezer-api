@@ -88,13 +88,14 @@ def get_file_format(s: dict) -> tuple[str, str]:
 
 
 # quality is mp3 or flac
-def init_deezer_session(proxy_server: str, quality: str) -> None:
+def init_deezer_session(proxy_server: str, quality: str, deezer_token: str | None = None) -> None:
     global session, license_token
 
-    deezer_token = os.environ.get("DEEZER_TOKEN")
     if not deezer_token:
-        print("Error: DEEZER_TOKEN environment variable not set")
-        return
+        deezer_token = os.environ.get("DEEZER_TOKEN")
+
+    if not deezer_token:
+        raise ValueError("Error: Deezer token is not provided and DEEZER_TOKEN environment variable not set")
 
     header = {
         "Pragma": "no-cache",
