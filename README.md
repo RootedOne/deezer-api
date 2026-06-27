@@ -1,36 +1,47 @@
-# Music Downloader REST API (Isolated Service)
+# Downloader REST API
 
-This directory contains the standalone web service wrapper for the Telegram Music Downloader. It exposes high-performance REST API endpoints using FastAPI to query search data and generate temporary download links for tracks and albums.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/python-3.8+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos-lightgrey.svg?style=flat)](#setup--execution)
+[![Status](https://img.shields.io/badge/status-active-green.svg?style=flat)](#)
 
----
-
-## Features
-- **Unified & Categorized Search**: Search for keywords across tracks, albums, and artists concurrently (using asynchronous threads) or query individual items.
-- **Track & Album Downloads**: Retrieve high-quality audio files. Albums are zipped and tracks are renamed to user-friendly file formats (`{Artist} - {Title}_{ID}.mp3`).
-- **Dynamic Quality Overrides**: Choose quality tiers (`flac`, `mp3`, `mp3_320`, `mp3_128`) per-request via query parameters.
-- **Header-Based Authorization**: Protected endpoints using API token checking.
-- **Self-Contained Lifespan Cleanup**: Periodically sweeps the local downloads cache directory (`api/tmp/public_downloads/`) to clear old files.
+A high-performance standalone REST API wrapper for the Telegram Music Downloader. It exposes secure endpoints using FastAPI to query search data and generate temporary download links for tracks and albums directly from Deezer.
 
 ---
 
-## Directory Layout
+## 🌟 Core Features
+
+- **Concurrent Unified Search**: Concurrently queries tracks, albums, and artists using asynchronous worker threads to deliver unified search results rapidly.
+- **Dynamic Quality Overrides**: Choose quality tiers (`flac`, `mp3`, `mp3_320`, `mp3_128`, or `auto`) per request via query parameters. Fallback logic automatically steps down to lower qualities if the requested tier is unavailable.
+- **Resilient Multi-Account Cookie Rotation**: Configure multiple fallback ARL tokens. The download engine automatically detects authentication or retrieval errors at startup or runtime, rotating to the next available account transparently.
+- **Self-Cleaning Storage**: An asynchronous background sweeper periodically cleans the public downloads cache directory, removing files older than a user-configured threshold.
+- **Interactive Manager**: Includes a premium terminal-based command utility (`install.sh`) to install dependencies, manage env configurations, update the codebase, check logs, or uninstall the service.
+
+---
+
+## 📁 Directory Structure
+
 ```
-api/
-├── .env                # Local service configurations (ignored by git)
-├── .env.example        # Environment variable template config file
-├── requirements.txt    # API package dependencies
-├── main.py             # FastAPI backend app & uvicorn entry point
-├── download.py         # Bot-independent track and album download implementations
-├── utils.py            # Local config utilities
-├── test_api.py         # Mock integration test suite
-├── dl_utils/           # Local search, decryption, and download helpers
+.
+├── install.sh         # Interactive service installer and manager script
+├── main.py            # FastAPI entry point, endpoint routes & server loop
+├── download.py        # Bot-independent track/album download controller
+├── utils.py           # Shared utilities (temporary cache paths)
+├── requirements.txt   # Python dependency list
+├── .env.example       # Environment configuration template
+├── .env               # Active configurations (generated, git-ignored)
+├── test_api.py        # Mock integration test suite
+├── dl_utils/          # Local search, download, and decryption libraries
 └── tmp/
-    └── public_downloads/ # Public cache directory for files and ZIPs
+    └── public_downloads/ # Public web cache for downloaded files and ZIPs
 ```
 
 ---
 
-## Setup & Execution
+## 🚀 Setup & Execution
+
+### Option A: Automated Setup (Recommended)
+We provide an interactive command-line installer for Linux (Ubuntu/Debian) that sets up the virtual environment, installs dependencies, prompts for configuration values, and configures a systemd background service.
 
 ### 1. Quick Start (Recommended)
 
@@ -85,105 +96,68 @@ If you prefer to set things up manually:
 
 ---
 
-## API Documentation
+### Download Endpoints
 
-All routes require the API Key to be provided in the request headers:
-```http
-X-API-Key: <your-secret-api-token>
-```
+| Endpoint | Method | Query Params | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/download/track/{track_id}` | `GET` | `quality` *(Optional)* | Downloads a single track. Qualities: `flac`, `mp3`, `mp3_320`, `mp3_128`, `auto`. |
+| `/api/download/album/{album_id}` | `GET` | `quality` *(Optional)* | Downloads all album tracks, zips them, and returns a download link. |
 
-### 1. Search endpoints
-
-#### Unified Search
-* **Route**: `/api/search`
-* **Method**: `GET`
-* **Query Parameters**:
-  * `q` (string, required): Search query.
-* **Example Request**:
-  ```bash
-  curl -H "X-API-Key: dev-key" "http://localhost:8000/api/search?q=comfortably+numb"
-  ```
-* **Response Schema**:
-  ```json
-  {
-    "query": "comfortably numb",
-    "tracks": [
-      {
-        "id": "12345",
-        "id_type": "track",
-        "title": "Comfortably Numb",
-        "img_url": "https://...",
-        "album": "The Wall",
-        "album_id": 999,
-        "artist": "Pink Floyd",
-        "preview_url": "https://..."
-      }
-    ],
-    "albums": [],
-    "artists": []
-  }
-  ```
-
-#### Categorized Search
-Query individual objects:
-* **Tracks**: `GET /api/search/tracks?q=<query>`
-* **Albums**: `GET /api/search/albums?q=<query>`
-* **Artists**: `GET /api/search/artists?q=<query>`
-
----
-
-### 2. Download endpoints
-
-#### Download Track
-* **Route**: `/api/download/track/{track_id}`
-* **Method**: `GET`
-* **Query Parameters**:
-  * `quality` (string, optional): Request quality override. Choose from `flac`, `mp3`, `mp3_320`, or `mp3_128`.
-* **Example Request**:
-  ```bash
-  curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/track/12345?quality=flac"
-  ```
-* **Response Schema**:
-  ```json
-  {
-    "status": "success",
-    "track_id": "12345",
-    "title": "Comfortably Numb",
-    "artist": "Pink Floyd",
-    "album": "The Wall",
-    "quality_used": "FLAC",
-    "download_url": "http://localhost:8000/static/Pink_Floyd_-_Comfortably_Numb_12345.flac"
-  }
-  ```
-
-#### Download Album
-Downloads all tracks, packages them in a ZIP archive with a clean naming structure, and returns the public ZIP link.
-* **Route**: `/api/download/album/{album_id}`
-* **Method**: `GET`
-* **Query Parameters**:
-  * `quality` (string, optional): Audio quality override.
-* **Example Request**:
-  ```bash
-  curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/album/999?quality=mp3"
-  ```
-* **Response Schema**:
-  ```json
-  {
-    "status": "success",
-    "album_id": "999",
-    "title": "The Wall",
-    "artist": "Pink Floyd",
-    "track_count": 26,
-    "quality_used": "MP3_320",
-    "download_url": "http://localhost:8000/static/Pink_Floyd_-_The_Wall_999.zip"
-  }
-  ```
-
----
-
-## Running Integration Tests
-We provide a mock integration test client to verify endpoint structures:
+#### Download Track Example:
 ```bash
-python3 api/test_api.py
+curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/track/12345?quality=flac"
 ```
-This script validates authentication checks, response payload shapes, lock parameters, and file copying/zipping commands.
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "track_id": "12345",
+  "title": "Comfortably Numb",
+  "artist": "Pink Floyd",
+  "album": "The Wall",
+  "quality_used": "FLAC",
+  "download_url": "http://localhost:8000/static/Pink_Floyd_-_Comfortably_Numb_12345.flac"
+}
+```
+
+#### Download Album Example:
+```bash
+curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/album/999?quality=auto"
+```
+**Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "album_id": "999",
+  "title": "The Wall",
+  "artist": "Pink Floyd",
+  "track_count": 26,
+  "quality_used": "MP3_320",
+  "download_url": "http://localhost:8000/static/Pink_Floyd_-_The_Wall_999.zip"
+}
+```
+
+---
+
+## 🛠️ Architecture Details
+
+### 🔄 Multi-Account ARL Fallback Rotation
+To maximize service availability and circumvent single-account download rate limits or expiration:
+1. **Startup Check**: On startup, the download controller parses the environment variables sequentially (`DEEZER_TOKEN_1`, `DEEZER_TOKEN_2`, etc.) and tests them. The first token to pass session initialization becomes the active token.
+2. **Runtime Failover**: If a download fails due to decryption, permissions, or session blocks, the controller rotates to the next available token index and rebuilds the active download session.
+3. **Transparent Recovery**: The current download is retried using the new session automatically. If all configured accounts fail, the endpoint returns a `500 Internal Server Error`.
+
+### 🧹 Background Cache Sweeper
+Downloaded media is temporarily stored in `tmp/public_downloads/` to serve as static assets. To avoid storage bloat:
+- An asynchronous loop starts when the FastAPI app launches.
+- Every `CLEANUP_INTERVAL_SEC` seconds, it scans the directory.
+- Files with a modification time older than `FILE_MAX_AGE_SEC` are automatically unlinked.
+
+---
+
+## 🧪 Running Integration Tests
+
+To run local mock integration tests that validate authentication, routing, download locks, zip structures, and format fallbacks:
+```bash
+python3 test_api.py
+```

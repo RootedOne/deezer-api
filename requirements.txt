@@ -2,7 +2,7 @@ fastapi==0.111.0
 uvicorn==0.30.1
 python-dotenv==1.0.1
 httpx==0.28.1
-mutagen
-pycryptodome
-aioshutil
-requests
+requests>=2.31.0
+pycryptodome>=3.20.0
+mutagen>=1.47.0
+aioshutil>=1.3
