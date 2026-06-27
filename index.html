@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Downloader Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: rgba(17, 24, 39, 0.7);
+            --bg-card: rgba(30, 41, 59, 0.4);
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #ec4899;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glow-color: rgba(139, 92, 246, 0.15);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        header {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background-color: rgba(11, 15, 25, 0.8);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            -webkit-text-fill-color: initial;
+            background: var(--accent-gradient);
+            padding: 0.5rem;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            border: none;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #9b70ff 0%, #ff5cae 100%);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-field {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+
+        /* Search Section */
+        .search-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .search-subtitle {
+            color: var(--text-secondary);
+            max-width: 600px;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .search-container {
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 1.1rem 1.5rem;
+            padding-left: 3.5rem;
+            padding-right: 7.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            outline: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 0.6rem;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-size: 0.95rem;
+        }
+
+        /* Quality Options Widget */
+        .preferences-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .quality-selector {
+            display: flex;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 0.25rem;
+            border-radius: 30px;
+        }
+
+        .quality-option {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .quality-option.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+
+        /* Results Containers */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Premium Result Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.1);
+        }
+
+        .card-cover-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+            background: #1e293b;
+            overflow: hidden;
+        }
+
+        .card-cover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        .card:hover .card-cover {
+            transform: scale(1.05);
+        }
+
+        .card-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card-cover-wrapper:hover .card-overlay {
+            opacity: 1;
+        }
+
+        .play-preview-btn {
+            background: white;
+            color: var(--bg-primary);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .play-preview-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .card-body {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex-grow: 1;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: auto;
+            padding-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-actions {
+            margin-top: 0.5rem;
+        }
+
+        .card-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Notifications & Alerts */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 100;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-primary);
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--error); }
+        .toast.warning { border-left-color: var(--warning); }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        /* Audio Preview Sticky Player */
+        .preview-player {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 1.5rem;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 90;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+        }
+
+        .preview-player.active {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .preview-player-info {
+            font-size: 0.85rem;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preview-player-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .preview-player-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        /* Loading Skeletons */
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+
+        /* Animations */
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive adaptations */
+        @media(max-width: 768px) {
+            .search-title { font-size: 2rem; }
+            .header-actions span { display: none; }
+            .search-bar { padding-right: 4.5rem; }
+            .search-btn span { display: none; }
+            .search-btn i { margin: 0; }
+            .toast-container { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-music"></i>
+            <span>SoundFlow</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="settings-toggle-btn">
+                <i class="fa-solid fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settings-panel">
+            <h3><i class="fa-solid fa-sliders"></i> Connection Settings</h3>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label for="setting-api-key">API Authentication Key</label>
+                    <input type="password" id="setting-api-key" class="input-field" placeholder="Enter API Key...">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+                <button class="btn btn-primary" id="settings-save-btn">Save Configurations</button>
+            </div>
+        </div>
+
+        <!-- Search Bar Section -->
+        <div class="search-section">
+            <h1 class="search-title">Discover & Download</h1>
+            <p class="search-subtitle">Search for your favorite tracks, albums, or artists and download them instantly in premium quality.</p>
+            
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" class="search-bar" id="search-input" placeholder="Search track name, album, artist...">
+                <button class="btn btn-primary search-btn" id="search-btn">
+                    <i class="fa-solid fa-search"></i>
+                    <span>Search</span>
+                </button>
+            </div>
+
+            <div class="preferences-bar">
+                <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Audio Quality:</span>
+                <div class="quality-selector" id="quality-selector">
+                    <div class="quality-option active" data-quality="mp3">MP3 (320kbps)</div>
+                    <div class="quality-option" data-quality="flac">FLAC (Lossless)</div>
+                    <div class="quality-option" data-quality="mp3_128">MP3 (128kbps)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Selection Navigation -->
+        <div class="tabs-nav" id="tabs-nav" style="display: none;">
+            <button class="tab-btn active" data-tab="all-results">All Results</button>
+            <button class="tab-btn" data-tab="tracks-results">Tracks</button>
+            <button class="tab-btn" data-tab="albums-results">Albums</button>
+        </div>
+
+        <!-- Search Results Tabs Content -->
+        <div id="all-results" class="tab-content">
+            <!-- Dynamic Category Headers will render here if unified search is active -->
+            <div id="unified-container" style="display: flex; flex-direction: column; gap: 2.5rem;"></div>
+        </div>
+
+        <div id="tracks-results" class="tab-content">
+            <div class="results-grid" id="tracks-grid"></div>
+        </div>
+
+        <div id="albums-results" class="tab-content">
+            <div class="results-grid" id="albums-grid"></div>
+        </div>
+
+    </div>
+
+    <!-- Sticky Audio Player -->
+    <div class="preview-player" id="preview-player">
+        <div class="preview-player-controls">
+            <button class="preview-player-btn" id="player-play-pause-btn">
+                <i class="fa-solid fa-pause"></i>
+            </button>
+        </div>
+        <div class="preview-player-info">
+            <div id="player-track-title" style="font-weight: 600;">Track Name</div>
+            <div id="player-track-artist" style="font-size:0.75rem; color:var(--text-secondary)">Artist Name</div>
+        </div>
+        <button class="toast-close" id="player-close-btn" style="margin-left: 0.5rem;">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Audio Element -->
+    <audio id="audio-preview-element" style="display: none;"></audio>
+
+    <script>
+        // Global variables & state
+        const state = {
+            apiKey: localStorage.getItem('api_key') || 'dev-key',
+            quality: 'mp3',
+            currentSearchQuery: '',
+            searchResults: null,
+            activePreviewTrackId: null
+        };
+
+        // DOM elements
+        const elements = {
+            settingsToggleBtn: document.getElementById('settings-toggle-btn'),
+            settingsPanel: document.getElementById('settings-panel'),
+            settingsApiKey: document.getElementById('setting-api-key'),
+            settingsSaveBtn: document.getElementById('settings-save-btn'),
+            searchInput: document.getElementById('search-input'),
+            searchBtn: document.getElementById('search-btn'),
+            qualitySelector: document.getElementById('quality-selector'),
+            tabsNav: document.getElementById('tabs-nav'),
+            tabButtons: document.querySelectorAll('.tab-btn'),
+            tabContents: document.querySelectorAll('.tab-content'),
+            unifiedContainer: document.getElementById('unified-container'),
+            tracksGrid: document.getElementById('tracks-grid'),
+            albumsGrid: document.getElementById('albums-grid'),
+            toastContainer: document.getElementById('toast-container'),
+            previewPlayer: document.getElementById('preview-player'),
+            playerPlayPauseBtn: document.getElementById('player-play-pause-btn'),
+            playerTrackTitle: document.getElementById('player-track-title'),
+            playerTrackArtist: document.getElementById('player-track-artist'),
+            playerCloseBtn: document.getElementById('player-close-btn'),
+            audioElement: document.getElementById('audio-preview-element')
+        };
+
+        // Initialize App
+        function init() {
+            // Check config key hint on startup
+            fetchKeyHint();
+            
+            // Event Listeners
+            elements.settingsToggleBtn.addEventListener('click', toggleSettings);
+            elements.settingsSaveBtn.addEventListener('click', saveSettings);
+            elements.searchBtn.addEventListener('click', performSearch);
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+
+            // Quality options listener
+            elements.qualitySelector.addEventListener('click', (e) => {
+                const option = e.target.closest('.quality-option');
+                if (!option) return;
+                document.querySelectorAll('.quality-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                state.quality = option.dataset.quality;
+                showToast('Quality Updated', `Downloads will target ${option.innerText}`, 'success');
+            });
+
+            // Tabs toggle listener
+            elements.tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.tabButtons.forEach(b => b.classList.remove('active'));
+                    elements.tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    const activeContent = document.getElementById(btn.dataset.tab);
+                    activeContent.classList.add('active');
+                });
+            });
+
+            // Preview player controls
+            elements.playerPlayPauseBtn.addEventListener('click', togglePreviewPlayback);
+            elements.playerCloseBtn.addEventListener('click', stopPreview);
+            elements.audioElement.addEventListener('ended', stopPreview);
+            
+            // Pre-populate settings key
+            elements.settingsApiKey.value = state.apiKey;
+        }
+
+        // Fetch server-configured API key hint
+        async function fetchKeyHint() {
+            try {
+                const response = await fetch('/api/key-hint');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.default_key && !localStorage.getItem('api_key')) {
+                        state.apiKey = data.default_key;
+                        elements.settingsApiKey.value = data.default_key;
+                        localStorage.setItem('api_key', data.default_key);
+                    }
+                }
+            } catch (err) {
+                // Silently ignore configuration errors on client startup
+            }
+        }
+
+        // UI Handlers
+        function toggleSettings() {
+            elements.settingsPanel.classList.toggle('active');
+        }
+
+        function saveSettings() {
+            const keyVal = elements.settingsApiKey.value.trim();
+            if (keyVal) {
+                state.apiKey = keyVal;
+                localStorage.setItem('api_key', keyVal);
+                showToast('Settings Saved', 'API authentication credentials updated.', 'success');
+                elements.settingsPanel.classList.remove('active');
+            } else {
+                showToast('Error', 'Please fill in a valid API Key.', 'error');
+            }
+        }
+
+        // Search flow
+        async function performSearch() {
+            const query = elements.searchInput.value.trim();
+            if (!query) {
+                showToast('Missing Keyword', 'Please enter a search query.', 'warning');
+                return;
+            }
+
+            state.currentSearchQuery = query;
+            stopPreview();
+            
+            // Show loading skeleton states
+            elements.tabsNav.style.display = 'none';
+            elements.unifiedContainer.innerHTML = renderSearchSkeletons();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            elements.tabButtons[0].classList.add('active');
+            elements.tabContents.forEach(c => c.classList.remove('active'));
+            elements.tabContents[0].classList.add('active');
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("Invalid or missing API key. Please open Settings and update it.");
+                    }
+                    throw new Error(`Search failed with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                state.searchResults = data;
+                
+                // Show Tabs Navigation
+                elements.tabsNav.style.display = 'flex';
+                
+                renderResults(data);
+            } catch (err) {
+                elements.unifiedContainer.innerHTML = `
+                    <div style="text-align:center; padding: 3rem 1rem; color:var(--error);">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                        <h3>Search Failed</h3>
+                        <p style="color:var(--text-secondary); margin-top: 0.5rem;">${err.message}</p>
+                    </div>
+                `;
+                showToast('Search Failed', err.message, 'error');
+            }
+        }
+
+        // Render functions
+        function renderSearchSkeletons() {
+            return `
+                <div>
+                    <div class="skeleton" style="height: 1.5rem; width: 200px; margin-bottom: 1rem; border-radius: 4px;"></div>
+                    <div class="results-grid">
+                        ${Array(4).fill(0).map(() => `
+                            <div class="card" style="height: 380px;">
+                                <div class="skeleton" style="padding-top: 100%;"></div>
+                                <div style="padding: 1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
+                                    <div class="skeleton" style="height:1.25rem; width:80%; border-radius:4px;"></div>
+                                    <div class="skeleton" style="height:1rem; width:50%; border-radius:4px;"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResults(data) {
+            elements.unifiedContainer.innerHTML = '';
+            elements.tracksGrid.innerHTML = '';
+            elements.albumsGrid.innerHTML = '';
+
+            const hasTracks = data.tracks && data.tracks.length > 0;
+            const hasAlbums = data.albums && data.albums.length > 0;
+
+            if (!hasTracks && !hasAlbums) {
+                elements.unifiedContainer.innerHTML = `
+                    <div style="text-align:center; padding: 4rem 1rem;">
+                        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.5rem; margin-bottom: 1rem; color:var(--text-secondary);"></i>
+                        <h3>No results found</h3>
+                        <p style="color:var(--text-muted); margin-top: 0.5rem;">Try refining your keywords or check spelling.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Build tracks
+            if (hasTracks) {
+                const tracksSection = document.createElement('div');
+                tracksSection.innerHTML = `
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1.25rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i class="fa-solid fa-music" style="color: var(--accent-primary)"></i> Tracks
+                    </h2>
+                    <div class="results-grid" id="unified-tracks-grid"></div>
+                `;
+                elements.unifiedContainer.appendChild(tracksSection);
+                
+                const unifiedTracksGrid = tracksSection.querySelector('#unified-tracks-grid');
+                
+                data.tracks.forEach(track => {
+                    const cardHtml = createTrackCard(track);
+                    unifiedTracksGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    elements.tracksGrid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
+
+            // Build albums
+            if (hasAlbums) {
+                const albumsSection = document.createElement('div');
+                albumsSection.innerHTML = `
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1.25rem; margin-top: 1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i class="fa-solid fa-compact-disc" style="color: var(--accent-secondary)"></i> Albums
+                    </h2>
+                    <div class="results-grid" id="unified-albums-grid"></div>
+                `;
+                elements.unifiedContainer.appendChild(albumsSection);
+                
+                const unifiedAlbumsGrid = albumsSection.querySelector('#unified-albums-grid');
+                
+                data.albums.forEach(album => {
+                    const cardHtml = createAlbumCard(album);
+                    unifiedAlbumsGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    elements.albumsGrid.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
+        }
+
+        function createTrackCard(track) {
+            const coverUrl = track.img_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            const previewBtnHtml = track.preview_url ? `
+                <div class="card-overlay">
+                    <button class="play-preview-btn" onclick="playPreview('${track.id}', '${escapeHtml(track.title)}', '${escapeHtml(track.artist)}', '${track.preview_url}')">
+                        <i class="fa-solid fa-play" id="play-icon-${track.id}"></i>
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+                <div class="card" id="track-card-${track.id}">
+                    <div class="card-cover-wrapper">
+                        <img src="${coverUrl}" class="card-cover" alt="${escapeHtml(track.title)}" loading="lazy">
+                        ${previewBtnHtml}
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</div>
+                        <div class="card-subtitle" title="${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</div>
+                        <div class="card-meta">
+                            <span>Album: ${escapeHtml(track.album || 'Unknown')}</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-primary" onclick="downloadItem('track', '${track.id}', this)">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Download Track</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createAlbumCard(album) {
+            const coverUrl = album.img_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop';
+            return `
+                <div class="card" id="album-card-${album.id}">
+                    <div class="card-cover-wrapper">
+                        <img src="${coverUrl}" class="card-cover" alt="${escapeHtml(album.title)}" loading="lazy">
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title" title="${escapeHtml(album.title)}">${escapeHtml(album.title)}</div>
+                        <div class="card-subtitle" title="${escapeHtml(album.artist)}">${escapeHtml(album.artist)}</div>
+                        <div class="card-meta">
+                            <span>Type: Album</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-primary" onclick="downloadItem('album', '${album.id}', this)" style="background:linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)">
+                                <i class="fa-solid fa-file-zipper"></i>
+                                <span>Download ZIP</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Preview playback control
+        function playPreview(trackId, title, artist, previewUrl) {
+            if (state.activePreviewTrackId === trackId) {
+                togglePreviewPlayback();
+                return;
+            }
+
+            // Reset current icon
+            if (state.activePreviewTrackId) {
+                const prevIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (prevIcon) prevIcon.className = 'fa-solid fa-play';
+            }
+
+            state.activePreviewTrackId = trackId;
+            elements.audioElement.src = previewUrl;
+            elements.audioElement.play();
+
+            elements.playerTrackTitle.innerText = title;
+            elements.playerTrackArtist.innerText = artist;
+            elements.previewPlayer.classList.add('active');
+            elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            
+            const currIcon = document.getElementById(`play-icon-${trackId}`);
+            if (currIcon) currIcon.className = 'fa-solid fa-pause';
+        }
+
+        function togglePreviewPlayback() {
+            if (elements.audioElement.paused) {
+                elements.audioElement.play();
+                elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-pause';
+            } else {
+                elements.audioElement.pause();
+                elements.playerPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-play';
+            }
+        }
+
+        function stopPreview() {
+            elements.audioElement.pause();
+            elements.audioElement.src = '';
+            elements.previewPlayer.classList.remove('active');
+            if (state.activePreviewTrackId) {
+                const currIcon = document.getElementById(`play-icon-${state.activePreviewTrackId}`);
+                if (currIcon) currIcon.className = 'fa-solid fa-play';
+            }
+            state.activePreviewTrackId = null;
+        }
+
+        // Download Action
+        async function downloadItem(type, itemId, buttonElement) {
+            const originalBtnContent = buttonElement.innerHTML;
+            
+            // Set loading state on the button
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Preparing...</span>`;
+
+            showToast('Download Queued', `Fetching metadata and downloading from Deezer...`, 'warning');
+
+            try {
+                const endpoint = `/api/download/${type}/${itemId}?quality=${state.quality}`;
+                const response = await fetch(endpoint, {
+                    headers: { 'X-API-Key': state.apiKey }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("Invalid API key configured. Check settings.");
+                    }
+                    throw new Error(`Download endpoint returned ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.download_url) {
+                    // Update button to success briefly
+                    buttonElement.innerHTML = `<i class="fa-solid fa-check"></i> <span>Ready!</span>`;
+                    showToast('Ready for Download', `Your download for "${result.title}" is ready.`, 'success');
+                    
+                    // Trigger dynamic browser download
+                    const hiddenLink = document.createElement('a');
+                    hiddenLink.href = result.download_url;
+                    // Optional: set custom name
+                    hiddenLink.setAttribute('download', '');
+                    document.body.appendChild(hiddenLink);
+                    hiddenLink.click();
+                    document.body.removeChild(hiddenLink);
+                } else {
+                    throw new Error("Invalid payload structure returned from server.");
+                }
+            } catch (err) {
+                showToast('Download Failed', err.message, 'error');
+                buttonElement.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>Failed</span>`;
+            } finally {
+                // Restore button state after a delay
+                setTimeout(() => {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = originalBtnContent;
+                }, 4000);
+            }
+        }
+
+        // Helper: toast notifications
+        function showToast(title, desc, type = 'success') {
+            const toastId = `toast-${Date.now()}`;
+            const iconMap = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                warning: 'fa-info-circle'
+            };
+
+            const toastHtml = `
+                <div class="toast ${type}" id="${toastId}">
+                    <i class="fa-solid ${iconMap[type]}" style="font-size:1.1rem; margin-top:0.1rem; color:var(--${type})"></i>
+                    <div class="toast-content">
+                        <div class="toast-title">${escapeHtml(title)}</div>
+                        <div class="toast-desc">${escapeHtml(desc)}</div>
+                    </div>
+                    <button class="toast-close" onclick="document.getElementById('${toastId}').remove()">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            elements.toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                const toastEl = document.getElementById(toastId);
+                if (toastEl) toastEl.remove();
+            }, 5000);
+        }
+
+        // Helper: escape HTML tags
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Start initialization
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

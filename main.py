@@ -26,6 +26,7 @@ if LOCAL_TOKEN_ENV.exists():
 
 # FastAPI imports
 from fastapi import FastAPI, Header, HTTPException, status, Depends, Request, Query
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # 3. Local module imports (completely isolated)
@@ -103,6 +104,20 @@ async def verify_api_key(x_api_key: str = Header(None)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing API Key",
         )
+
+# Serve root web dashboard UI
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    index_file = API_DIR / "index.html"
+    if not index_file.exists():
+        return HTMLResponse("index.html not found", status_code=404)
+    with open(index_file, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+# Key hint helper endpoint for frontend to prefill the key if running locally with default credentials
+@app.get("/api/key-hint")
+async def get_key_hint():
+    return {"default_key": API_KEY if API_KEY == "dev-key" else None}
 
 # Mount static downloads directory
 app.mount("/static", StaticFiles(directory=str(PUBLIC_DOWNLOADS_DIR)), name="static")

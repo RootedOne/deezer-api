@@ -91,7 +91,7 @@ def test_download_track_endpoint():
         
         mock_download.assert_called_once_with("123")
         mock_copy.assert_called_once()
-        mock_rmtree.assert_called_once_with("/tmp/dummy_download_dir", ignore_errors=True)
+        mock_rmtree.assert_called_once_with(str(Path("/tmp/dummy_download_dir")), ignore_errors=True)
 
     # Clean up temp files
     try:
@@ -133,7 +133,7 @@ def test_download_album_endpoint():
         
         mock_download.assert_called_once_with("456")
         mock_zip.assert_called_once()
-        mock_rmtree.assert_called_once_with("/tmp/dummy_album_dir", ignore_errors=True)
+        mock_rmtree.assert_called_once_with(str(Path("/tmp/dummy_album_dir")), ignore_errors=True)
 
     try:
         os.remove("/tmp/dummy_song1.mp3")
