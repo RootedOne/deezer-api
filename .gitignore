@@ -1,0 +1,119 @@
+# ==============================================================================
+# Goated .gitignore for Music Downloader API (Python/FastAPI)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Python Cache & Compiled Files
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ------------------------------------------------------------------------------
+# 2. Virtual Environments
+# ------------------------------------------------------------------------------
+.venv/
+venv/
+ENV/
+env/
+venv.bak/
+env.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ------------------------------------------------------------------------------
+# 3. Environment Variables & Secret Configuration
+# ------------------------------------------------------------------------------
+# Ignore all env files that might contain production credentials or tokens
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+token.env
+*.env
+
+# BUT track the template environment config so developers know what to set up
+! .env.example
+
+# ------------------------------------------------------------------------------
+# 4. API Downloads & Cache (App-specific)
+# ------------------------------------------------------------------------------
+# Ignore the temporary directory used for download caches, zip packaging, etc.
+tmp/
+temp/
+
+# Ignore audio/media assets and archives that might accidentally be generated or stored locally
+*.mp3
+*.flac
+*.m4a
+*.wav
+*.zip
+*.tar
+*.gz
+
+# ------------------------------------------------------------------------------
+# 5. Testing & Static Analysis Cache
+# ------------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.noserc
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ------------------------------------------------------------------------------
+# 6. IDEs, Editors & OS Metadata
+# ------------------------------------------------------------------------------
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+*.bak
