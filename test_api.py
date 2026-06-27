@@ -89,7 +89,7 @@ def test_download_track_endpoint():
         assert data["track_id"] == "123"
         assert data["quality_used"] == "MP3_320"
         
-        mock_download.assert_called_once_with("123")
+        mock_download.assert_called_once_with("123", quality="mp3")
         mock_copy.assert_called_once()
         mock_rmtree.assert_called_once_with("/tmp/dummy_download_dir", ignore_errors=True)
 
@@ -110,7 +110,8 @@ def test_download_album_endpoint():
             "artist_name": "Pink Floyd",
             "file_extension": ".mp3",
             "ALB_TITLE": "Dark Side of the Moon",
-            "TRACK_NUMBER": "01"
+            "TRACK_NUMBER": "01",
+            "quality_used": "FLAC"
         }
     ]
 
@@ -131,7 +132,7 @@ def test_download_album_endpoint():
         assert data["track_count"] == 1
         assert data["quality_used"] == "FLAC"
         
-        mock_download.assert_called_once_with("456")
+        mock_download.assert_called_once_with("456", quality="flac")
         mock_zip.assert_called_once()
         mock_rmtree.assert_called_once_with("/tmp/dummy_album_dir", ignore_errors=True)
 
@@ -140,6 +141,221 @@ def test_download_album_endpoint():
         os.rmdir("/tmp/dummy_album_dir")
     except OSError:
         pass
+
+def test_download_track_auto_fallback():
+    """Verify that downloading a track without quality parameter defaults to auto fallback."""
+    mock_track_info = {
+        "song_path": "/tmp/dummy_song.mp3",
+        "download_dir": "/tmp/dummy_download_dir",
+        "song_name": "Comfortably Numb",
+        "artist_name": "Pink Floyd",
+        "file_extension": ".mp3",
+        "ALB_TITLE": "The Wall",
+        "quality_used": "MP3_320"
+    }
+
+    os.makedirs("/tmp/dummy_download_dir", exist_ok=True)
+    with open("/tmp/dummy_song.mp3", "w") as f:
+        f.write("mock audio content")
+
+    with patch("main.download_track", return_value=mock_track_info) as mock_download, \
+         patch("shutil.copy2") as mock_copy, \
+         patch("shutil.rmtree") as mock_rmtree:
+         
+        response = client.get("/api/download/track/123", headers={"X-API-Key": "test-api-key"})
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["quality_used"] == "MP3_320"
+        
+        mock_download.assert_called_once_with("123", quality="auto")
+        mock_copy.assert_called_once()
+        mock_rmtree.assert_called_once_with("/tmp/dummy_download_dir", ignore_errors=True)
+
+    try:
+        os.remove("/tmp/dummy_song.mp3")
+        os.rmdir("/tmp/dummy_download_dir")
+    except OSError:
+        pass
+
+def test_download_album_auto_fallback():
+    """Verify that downloading an album without quality parameter defaults to auto fallback."""
+    mock_album_results = [
+        {
+            "song_path": "/tmp/dummy_song1.mp3",
+            "download_dir": "/tmp/dummy_album_dir",
+            "song_name": "Time",
+            "artist_name": "Pink Floyd",
+            "file_extension": ".mp3",
+            "ALB_TITLE": "Dark Side of the Moon",
+            "TRACK_NUMBER": "01",
+            "quality_used": "FLAC"
+        }
+    ]
+
+    os.makedirs("/tmp/dummy_album_dir", exist_ok=True)
+    with open("/tmp/dummy_song1.mp3", "w") as f:
+        f.write("mock audio 1")
+
+    with patch("main.download_album", return_value=mock_album_results) as mock_download, \
+         patch("main.ZipFile") as mock_zip, \
+         patch("shutil.rmtree") as mock_rmtree:
+         
+        response = client.get("/api/download/album/456", headers={"X-API-Key": "test-api-key"})
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["quality_used"] == "FLAC"
+        
+        mock_download.assert_called_once_with("456", quality="auto")
+        mock_zip.assert_called_once()
+        mock_rmtree.assert_called_once_with("/tmp/dummy_album_dir", ignore_errors=True)
+
+def test_download_track_fallback_mechanism():
+    """Verify that download_track correctly falls back to lower quality when highest fails."""
+    mock_infos = {
+        "SNG_ID": "123",
+        "SNG_TITLE": "Test Title",
+        "ART_NAME": "Test Artist",
+        "TRACK_NUMBER": "1"
+    }
+    
+    with patch("download.get_song_infos_from_deezer_website", return_value=mock_infos), \
+         patch("download.get_file_format") as mock_get_file_format, \
+         patch("download.download_song") as mock_download_song:
+         
+        mock_get_file_format.side_effect = [
+            (".flac", "FLAC"),
+            (".mp3", "MP3_320"),
+            (".mp3", "MP3_128")
+        ]
+        
+        def mock_dl_song(ti, df, sp):
+            if df == "FLAC":
+                raise ValueError("FLAC license error")
+            with open(sp, "w") as f:
+                f.write("mock mp3 audio")
+                
+        mock_download_song.side_effect = mock_dl_song
+        
+        from download import download_track
+        import asyncio
+        
+        result = asyncio.run(download_track("123", quality="auto", retries=2))
+        
+        assert result is not None
+        assert result["quality_used"] == "MP3_320"
+        assert result["file_extension"] == ".mp3"
+        assert mock_download_song.call_count == 3  # 2 FLAC fails + 1 MP3_320 success
+        
+        download_dir = result["download_dir"]
+        import shutil
+        if os.path.exists(download_dir):
+            shutil.rmtree(download_dir, ignore_errors=True)
+
+def test_download_album_fallback_mechanism():
+    """Verify that download_album correctly falls back to lower quality on per-track basis when highest fails."""
+    mock_album_infos = [
+        {
+            "SNG_ID": "123",
+            "SNG_TITLE": "Track 1",
+            "ART_NAME": "Test Artist",
+            "TRACK_NUMBER": "1"
+        },
+        {
+            "SNG_ID": "124",
+            "SNG_TITLE": "Track 2",
+            "ART_NAME": "Test Artist",
+            "TRACK_NUMBER": "2"
+        }
+    ]
+    
+    with patch("download.get_song_infos_from_deezer_website", return_value=mock_album_infos), \
+         patch("download.get_file_format") as mock_get_file_format, \
+         patch("download.download_song") as mock_download_song:
+         
+        mock_get_file_format.side_effect = [
+            (".flac", "FLAC"),
+            (".flac", "FLAC"),
+            (".mp3", "MP3_320"),
+            (".mp3", "MP3_128")
+        ]
+        
+        def mock_dl_song(ti, df, sp):
+            if ti["SNG_ID"] == "124" and df == "FLAC":
+                raise ValueError("FLAC forbidden for Track 2")
+            with open(sp, "w") as f:
+                f.write("mock audio")
+                
+        mock_download_song.side_effect = mock_dl_song
+        
+        from download import download_album
+        import asyncio
+        
+        results = asyncio.run(download_album("456", quality="auto", retries=2))
+        
+        assert len(results) == 2
+        assert results[0]["quality_used"] == "FLAC"
+        assert results[1]["quality_used"] == "MP3_320"
+        assert mock_download_song.call_count == 4  # Track 1: 1 FLAC success; Track 2: 2 FLAC fails + 1 MP3_320 success
+        
+        download_dir = results[0]["download_dir"]
+        import shutil
+        if os.path.exists(download_dir):
+            shutil.rmtree(download_dir, ignore_errors=True)
+
+def test_account_fallback_mechanism():
+    """Verify that when a download fails on the first account, it rotates and succeeds with the second account."""
+    import download
+    
+    # Save original values
+    original_tokens = download.DEEZER_TOKENS
+    original_index = download.CURRENT_TOKEN_INDEX
+    
+    mock_infos = {
+        "SNG_ID": "123",
+        "SNG_TITLE": "Test Title",
+        "ART_NAME": "Test Artist",
+        "TRACK_NUMBER": "1"
+    }
+
+    try:
+        download.DEEZER_TOKENS = ["bad-token", "good-token"]
+        download.CURRENT_TOKEN_INDEX = 0
+        
+        with patch("download.init_deezer_session") as mock_init, \
+             patch("download.get_song_infos_from_deezer_website", return_value=mock_infos), \
+             patch("download.get_file_format") as mock_get_file_format, \
+             patch("download.download_song") as mock_download_song:
+             
+            mock_get_file_format.return_value = (".mp3", "MP3_320")
+            
+            def mock_dl_song(ti, df, sp):
+                if download.CURRENT_TOKEN_INDEX == 0:
+                    raise ValueError("Unauthorized or bad session")
+                with open(sp, "w") as f:
+                    f.write("mock mp3 audio")
+                    
+            mock_download_song.side_effect = mock_dl_song
+            
+            import asyncio
+            result = asyncio.run(download.download_track("123", quality="mp3", retries=1))
+            
+            assert result is not None
+            assert result["quality_used"] == "MP3_320"
+            assert download.CURRENT_TOKEN_INDEX == 1
+            mock_init.assert_any_call("", download.DEFAULT_QUALITY, "good-token")
+            
+            download_dir = result["download_dir"]
+            import shutil
+            if os.path.exists(download_dir):
+                shutil.rmtree(download_dir, ignore_errors=True)
+    finally:
+        # Restore original values
+        download.DEEZER_TOKENS = original_tokens
+        download.CURRENT_TOKEN_INDEX = original_index
 
 if __name__ == "__main__":
     print("Running isolated API integration tests...")
@@ -154,6 +370,16 @@ if __name__ == "__main__":
         print("  - test_download_track_endpoint: PASSED")
         test_download_album_endpoint()
         print("  - test_download_album_endpoint: PASSED")
+        test_download_track_auto_fallback()
+        print("  - test_download_track_auto_fallback: PASSED")
+        test_download_album_auto_fallback()
+        print("  - test_download_album_auto_fallback: PASSED")
+        test_download_track_fallback_mechanism()
+        print("  - test_download_track_fallback_mechanism: PASSED")
+        test_download_album_fallback_mechanism()
+        print("  - test_download_album_fallback_mechanism: PASSED")
+        test_account_fallback_mechanism()
+        print("  - test_account_fallback_mechanism: PASSED")
         print("\nAll isolated API integration tests passed successfully!")
     except AssertionError as e:
         print(f"\nAssertion failed during testing: {e}")

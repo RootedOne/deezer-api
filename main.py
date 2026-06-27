@@ -191,16 +191,18 @@ async def download_track_endpoint(
     # Validate quality argument
     if quality:
         quality = quality.lower()
-        if quality not in ["flac", "mp3", "mp3_320", "mp3_128"]:
+        if quality not in ["flac", "mp3", "mp3_320", "mp3_128", "auto"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid quality. Allowed values: flac, mp3, mp3_320, mp3_128"
+                detail="Invalid quality. Allowed values: flac, mp3, mp3_320, mp3_128, auto"
             )
+    else:
+        quality = "auto"
 
     async with download_lock:
         # Override quality settings globally for this download step
         original_format = deezer_download.sound_format
-        if quality:
+        if quality != "auto":
             if quality == "flac":
                 deezer_download.sound_format = "FLAC"
             elif quality in ["mp3_320", "mp3"]:
@@ -209,8 +211,8 @@ async def download_track_endpoint(
                 deezer_download.sound_format = "MP3_128"
         
         try:
-            print(f"[API] Downloading track {track_id} with format {deezer_download.sound_format}")
-            result = await download_track(track_id)
+            print(f"[API] Downloading track {track_id} with format {deezer_download.sound_format} (requested: {quality})")
+            result = await download_track(track_id, quality=quality)
             if not result or "song_path" not in result:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -243,7 +245,7 @@ async def download_track_endpoint(
                 "title": title,
                 "artist": artist,
                 "album": result.get("ALB_TITLE", "Unknown Album"),
-                "quality_used": deezer_download.sound_format,
+                "quality_used": result.get("quality_used", deezer_download.sound_format),
                 "download_url": download_url
             }
         except HTTPException:
@@ -268,15 +270,17 @@ async def download_album_endpoint(
     """Download an album, zip all its tracks, and return a temporary downloadable web link."""
     if quality:
         quality = quality.lower()
-        if quality not in ["flac", "mp3", "mp3_320", "mp3_128"]:
+        if quality not in ["flac", "mp3", "mp3_320", "mp3_128", "auto"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid quality. Allowed values: flac, mp3, mp3_320, mp3_128"
+                detail="Invalid quality. Allowed values: flac, mp3, mp3_320, mp3_128, auto"
             )
+    else:
+        quality = "auto"
 
     async with download_lock:
         original_format = deezer_download.sound_format
-        if quality:
+        if quality != "auto":
             if quality == "flac":
                 deezer_download.sound_format = "FLAC"
             elif quality in ["mp3_320", "mp3"]:
@@ -285,8 +289,8 @@ async def download_album_endpoint(
                 deezer_download.sound_format = "MP3_128"
         
         try:
-            print(f"[API] Downloading album {album_id} with format {deezer_download.sound_format}")
-            results = await download_album(album_id)
+            print(f"[API] Downloading album {album_id} with format {deezer_download.sound_format} (requested: {quality})")
+            results = await download_album(album_id, quality=quality)
             if not results:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -322,13 +326,17 @@ async def download_album_endpoint(
             base_url = str(request.base_url)
             download_url = f"{base_url.rstrip('/')}/static/{public_filename}"
             
+            # Collect unique qualities used for the tracks
+            unique_qualities = list(set(r.get("quality_used", "UNKNOWN") for r in results))
+            quality_used = unique_qualities[0] if len(unique_qualities) == 1 else ", ".join(unique_qualities)
+
             return {
                 "status": "success",
                 "album_id": album_id,
                 "title": album_title,
                 "artist": artist_name,
                 "track_count": len(results),
-                "quality_used": deezer_download.sound_format,
+                "quality_used": quality_used,
                 "download_url": download_url
             }
         except HTTPException:

@@ -7,8 +7,9 @@ This directory contains the standalone web service wrapper for the Telegram Musi
 ## Features
 - **Unified & Categorized Search**: Search for keywords across tracks, albums, and artists concurrently (using asynchronous threads) or query individual items.
 - **Track & Album Downloads**: Retrieve high-quality audio files. Albums are zipped and tracks are renamed to user-friendly file formats (`{Artist} - {Title}_{ID}.mp3`).
-- **Dynamic Quality Overrides**: Choose quality tiers (`flac`, `mp3`, `mp3_320`, `mp3_128`) per-request via query parameters.
+- **Dynamic Quality Overrides**: Choose quality tiers (`flac`, `mp3`, `mp3_320`, `mp3_128`, or `auto`) per-request via query parameters. Omitting the parameter defaults to `auto` fallback.
 - **Header-Based Authorization**: Protected endpoints using API token checking.
+- **Fallback Deezer Accounts**: Configure multiple backup ARL accounts (`DEEZER_TOKEN_1`, `DEEZER_TOKEN_2`, ...). The engine automatically shifts active cookies on startup or runtime errors, retrying downloads transparently.
 - **Self-Contained Lifespan Cleanup**: Periodically sweeps the local downloads cache directory (`api/tmp/public_downloads/`) to clear old files.
 
 ---
@@ -53,7 +54,7 @@ FILE_MAX_AGE_SEC=3600      # Expiration limit of download links (e.g. 1 hour)
 CLEANUP_INTERVAL_SEC=300   # Sweep loop frequency (e.g. 5 minutes)
 ```
 
-> **Note**: The application will also fall back to parent system variables to lookup `DEEZER_TOKEN` (the ARL cookie) or you can define it inside `api/.env` directly.
+> **Note**: The application scans for multiple fallback accounts defined in `.env` (via `DEEZER_TOKEN_1`, `DEEZER_TOKEN_2`, etc.). If none are found, it falls back to the legacy `DEEZER_TOKEN` variable to ensure backward compatibility.
 
 ### 3. Run the Server
 Launch the server programmatically:
@@ -117,7 +118,7 @@ Query individual objects:
 * **Route**: `/api/download/track/{track_id}`
 * **Method**: `GET`
 * **Query Parameters**:
-  * `quality` (string, optional): Request quality override. Choose from `flac`, `mp3`, `mp3_320`, or `mp3_128`.
+  * `quality` (string, optional): Request quality override. Choose from `flac`, `mp3`, `mp3_320`, `mp3_128`, or `auto` (defaults to `auto` fallback when omitted).
 * **Example Request**:
   ```bash
   curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/track/12345?quality=flac"
@@ -140,7 +141,7 @@ Downloads all tracks, packages them in a ZIP archive with a clean naming structu
 * **Route**: `/api/download/album/{album_id}`
 * **Method**: `GET`
 * **Query Parameters**:
-  * `quality` (string, optional): Audio quality override.
+  * `quality` (string, optional): Audio quality override. Choose from `flac`, `mp3`, `mp3_320`, `mp3_128`, or `auto` (defaults to `auto` fallback when omitted).
 * **Example Request**:
   ```bash
   curl -H "X-API-Key: dev-key" "http://localhost:8000/api/download/album/999?quality=mp3"
@@ -163,6 +164,6 @@ Downloads all tracks, packages them in a ZIP archive with a clean naming structu
 ## Running Integration Tests
 We provide a mock integration test client to verify endpoint structures:
 ```bash
-python3 api/test_api.py
+python3 test_api.py
 ```
 This script validates authentication checks, response payload shapes, lock parameters, and file copying/zipping commands.
