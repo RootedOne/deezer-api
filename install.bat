@@ -18,7 +18,7 @@ for %%x in (py python python3) do (
 :found_python
 IF NOT DEFINED PYTHON_CMD (
     echo [ERROR] Python is not installed or not in your PATH.
-    echo Please install Python 3 (https://www.python.org/) and try again.
+    echo Please install Python 3 from https://www.python.org/ and try again.
     pause
     exit /b 1
 )
@@ -60,7 +60,7 @@ IF NOT EXIST ".env" (
     echo.
     echo *============================================================*
     echo  [ATTENTION] A new .env configuration file has been created.
-    echo  Please open .env and enter your DEEZER_TOKEN (ARL cookie).
+    echo  Please open .env and enter your DEEZER_TOKEN ARL cookie.
     echo *============================================================*
     echo.
 ) ELSE (
