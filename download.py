@@ -94,7 +94,7 @@ async def execute_with_account_fallback(func, *args, **kwargs):
                 print("[Fallback Auth] All fallback accounts have been tried and failed.")
                 raise e
 
-async def download_track(track_id, quality=None, retries=MAX_RETRIES):
+async def download_track(track_id, quality=None, retries=MAX_RETRIES, download_id=None):
     """Downloads a single track from Deezer with fallback quality support if quality='auto' or None, wrapped in fallback accounts."""
     async def _download_track_impl():
         if quality is None or quality.lower() == "auto":
@@ -139,10 +139,7 @@ async def download_track(track_id, quality=None, retries=MAX_RETRIES):
 
         tried_formats = set()
         for format_name in formats_to_try:
-            # Set the global format for get_file_format to read (synchronous operation)
-            deezer_download.sound_format = format_name
-
-            file_extension, deezer_format = get_file_format(track_infos)
+            file_extension, deezer_format = get_file_format(track_infos, format_name)
 
             if deezer_format in tried_formats:
                 continue
@@ -157,7 +154,7 @@ async def download_track(track_id, quality=None, retries=MAX_RETRIES):
             for attempt in range(retries):
                 try:
                     download_song(
-                        track_infos, deezer_format, str(song_path)
+                        track_infos, deezer_format, str(song_path), download_id=download_id
                     )
 
                     if not song_path.exists() or song_path.stat().st_size == 0:
@@ -216,7 +213,7 @@ async def download_track(track_id, quality=None, retries=MAX_RETRIES):
 
     return await execute_with_account_fallback(_download_track_impl)
 
-async def download_album(album_id, quality=None, retries=MAX_RETRIES):
+async def download_album(album_id, quality=None, retries=MAX_RETRIES, parent_download_id=None, child_ids=None):
     """Downloads all tracks from a Deezer album using local functions, without Telegram bot dependencies."""
     album_info_attempt = 0
     album_tracks_infos = None
@@ -275,18 +272,16 @@ async def download_album(album_id, quality=None, retries=MAX_RETRIES):
 
     for i, track_infos in enumerate(album_tracks_infos):
         track_id = track_infos.get("SNG_ID", f"album_{album_id}_track_{i}")
+        child_download_id = child_ids[i] if child_ids and i < len(child_ids) else None
 
-        async def download_single_track_with_fallback(ti, track_id):
+        async def download_single_track_with_fallback(ti, track_id, child_dl_id):
             async def _download_track_task():
                 last_exception = None
                 tried_formats = set()
 
                 for format_name in formats_to_try:
-                    # Set the global format for get_file_format to read (synchronous operation)
-                    deezer_download.sound_format = format_name
-
                     # Determine format based on metadata
-                    fe, df = get_file_format(ti)
+                    fe, df = get_file_format(ti, format_name)
 
                     if df in tried_formats:
                         continue
@@ -296,7 +291,7 @@ async def download_album(album_id, quality=None, retries=MAX_RETRIES):
 
                     for attempt in range(retries):
                         try:
-                            download_song(ti, df, str(sp))
+                            download_song(ti, df, str(sp), download_id=child_dl_id)
 
                             if not sp.exists() or sp.stat().st_size == 0:
                                 if sp.exists():
@@ -337,7 +332,7 @@ async def download_album(album_id, quality=None, retries=MAX_RETRIES):
 
             return await execute_with_account_fallback(_download_track_task)
 
-        tasks.append(download_single_track_with_fallback(track_infos, track_id))
+        tasks.append(download_single_track_with_fallback(track_infos, track_id, child_download_id))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
     downloaded_tracks_details = [res for res in results if res is not None and not isinstance(res, Exception)]

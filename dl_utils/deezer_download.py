@@ -30,6 +30,14 @@ license_token = {}
 sound_format = ""
 USER_AGENT = "Mozilla/5.0 (X11; Linux i686; rv:135.0) Gecko/20100101 Firefox/135.0"
 
+# A global dictionary of state callbacks for download manager integration
+DOWNLOAD_CALLBACKS = {
+    "is_paused": None,
+    "is_cancelled": None,
+    "update_progress": None
+}
+
+
 
 def get_user_data() -> tuple[Any, Any] | None:
     if not session:
@@ -65,8 +73,9 @@ def set_default_song_quality(quality_config: str, web_sound_quality: dict):
         sound_format = "MP3_128"
 
 
-def get_file_format(s: dict) -> tuple[str, str]:
-    if sound_format == "FLAC":
+def get_file_format(s: dict, requested_format: str | None = None) -> tuple[str, str]:
+    fmt = requested_format or sound_format
+    if fmt == "FLAC":
         if int(s.get("FILESIZE_FLAC", 0)) > 0:
             return ".flac", "FLAC"
         elif int(s.get("FILESIZE_MP3_320", 0)) > 0:
@@ -76,7 +85,7 @@ def get_file_format(s: dict) -> tuple[str, str]:
             print("Debug: FLAC and MP3_320 not available, falling back to MP3_128")
             return ".mp3", "MP3_128"
 
-    if sound_format == "MP3_320":
+    if fmt == "MP3_320":
         if int(s.get("FILESIZE_MP3_320", 0)) > 0:
             return ".mp3", "MP3_320"
         else:
@@ -180,7 +189,7 @@ def blowfishDecrypt(data, key):
     return c.decrypt(data)
 
 
-def decryptfile(fh, key, fo):
+def decryptfile(fh, key, fo, download_id: str | None = None, total_size: int = 0):
     """
     Decrypt data from file <fh>, and write to file <fo>.
     decrypt using blowfish with <key>.
@@ -188,8 +197,22 @@ def decryptfile(fh, key, fo):
     """
     blockSize = 2048
     i = 0
+    downloaded_bytes = 0
 
     for data in fh.iter_content(blockSize):
+        if download_id:
+            # Check for cancellation
+            if DOWNLOAD_CALLBACKS.get("is_cancelled") and DOWNLOAD_CALLBACKS["is_cancelled"](download_id):
+                raise RuntimeError("Download cancelled by user")
+            
+            # Check for pause
+            if DOWNLOAD_CALLBACKS.get("is_paused") and DOWNLOAD_CALLBACKS["is_paused"](download_id):
+                import time
+                while DOWNLOAD_CALLBACKS.get("is_paused") and DOWNLOAD_CALLBACKS["is_paused"](download_id):
+                    time.sleep(0.2)
+                    if DOWNLOAD_CALLBACKS.get("is_cancelled") and DOWNLOAD_CALLBACKS["is_cancelled"](download_id):
+                        raise RuntimeError("Download cancelled by user")
+
         if not data:
             break
 
@@ -200,6 +223,12 @@ def decryptfile(fh, key, fo):
             data = blowfishDecrypt(data, key)
 
         fo.write(data)
+        downloaded_bytes += len(data)
+
+        if download_id and total_size > 0 and DOWNLOAD_CALLBACKS.get("update_progress"):
+            progress = min(100, int((downloaded_bytes / total_size) * 100))
+            DOWNLOAD_CALLBACKS["update_progress"](download_id, progress, downloaded_bytes, total_size)
+
         i += 1
 
 
@@ -475,7 +504,7 @@ def get_song_url(track_token: str, format: str) -> str:
     return url
 
 
-def download_song(song: dict, deezer_format: str, output_file: str) -> None:
+def download_song(song: dict, deezer_format: str, output_file: str, download_id: str | None = None) -> None:
     # downloads and decrypts the song from Deezer. Adds ID3 and art cover
     # song: dict with information of the song (grabbed from Deezer.com)
     # output_file: absolute file name of the output file
@@ -513,10 +542,11 @@ def download_song(song: dict, deezer_format: str, output_file: str) -> None:
     try:
         with session.get(url, stream=True) as response:
             response.raise_for_status()
+            total_size = int(response.headers.get("content-length", 0))
             with open(output_file, "w+b") as fo:
                 # Add song cover and first 30 seconds of unencrypted data
                 writeid3v2(fo, song)
-                decryptfile(response, key, fo)
+                decryptfile(response, key, fo, download_id=download_id, total_size=total_size)
                 writeid3v1_1(fo, song)
     except Exception as e:
         raise DeezerApiException(f"Could not write song to disk: {e}") from e
@@ -630,20 +660,28 @@ def deezer_search(search, search_type):
             i["id_type"] = TYPE_ALBUM
             i["album"] = item["title"]
             i["album_id"] = item["id"]
-            i["img_url"] = item["cover_small"]
+            i["img_url"] = item.get("cover_medium", item.get("cover_small", ""))
             i["artist"] = item["artist"]["name"]
             i["title"] = ""
             i["preview_url"] = ""
+            i["nb_tracks"] = item.get("nb_tracks", 0)
+            i["release_date"] = item.get("release_date", "")
+            i["record_type"] = item.get("record_type", "album")
+            i["genre_id"] = item.get("genre_id", 0)
+            i["explicit_lyrics"] = item.get("explicit_lyrics", False)
 
         if search_type == TYPE_TRACK:
             i["id"] = str(item["id"])
             i["id_type"] = TYPE_TRACK
             i["title"] = item["title"]
-            i["img_url"] = item["album"]["cover_small"]
+            i["img_url"] = item["album"].get("cover_medium", item["album"].get("cover_small", ""))
             i["album"] = item["album"]["title"]
             i["album_id"] = item["album"]["id"]
             i["artist"] = item["artist"]["name"]
             i["preview_url"] = item["preview"]
+            i["duration"] = item.get("duration", 0)
+            i["explicit_lyrics"] = item.get("explicit_lyrics", False)
+            i["rank"] = item.get("rank", 0)
 
         if search_type == TYPE_ALBUM_TRACK:
             i["id"] = str(item["SNG_ID"])
@@ -661,7 +699,7 @@ def deezer_search(search, search_type):
             i["id"] = str(item["id"])
             i["id_type"] = TYPE_ARTIST
             i["name"] = item["name"]
-            i["img_url"] = item.get("picture_small", "")
+            i["img_url"] = item.get("picture_medium", item.get("picture_small", ""))
             i["nb_album"] = item.get("nb_album", 0)
             i["nb_fan"] = item.get("nb_fan", 0)
 
