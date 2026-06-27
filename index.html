@@ -717,8 +717,9 @@
 
     <script>
         // Global variables & state
+        const serverApiKey = "{{SERVER_API_KEY}}";
         const state = {
-            apiKey: localStorage.getItem('api_key') || 'dev-key',
+            apiKey: localStorage.getItem('api_key') || serverApiKey,
             quality: 'mp3',
             currentSearchQuery: '',
             searchResults: null,
@@ -751,9 +752,6 @@
 
         // Initialize App
         function init() {
-            // Check config key hint on startup
-            fetchKeyHint();
-            
             // Event Listeners
             elements.settingsToggleBtn.addEventListener('click', toggleSettings);
             elements.settingsSaveBtn.addEventListener('click', saveSettings);
@@ -789,25 +787,9 @@
             elements.playerCloseBtn.addEventListener('click', stopPreview);
             elements.audioElement.addEventListener('ended', stopPreview);
             
-            // Pre-populate settings key
-            elements.settingsApiKey.value = state.apiKey;
-        }
-
-        // Fetch server-configured API key hint
-        async function fetchKeyHint() {
-            try {
-                const response = await fetch('/api/key-hint');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.default_key && !localStorage.getItem('api_key')) {
-                        state.apiKey = data.default_key;
-                        elements.settingsApiKey.value = data.default_key;
-                        localStorage.setItem('api_key', data.default_key);
-                    }
-                }
-            } catch (err) {
-                // Silently ignore configuration errors on client startup
-            }
+            // Pre-populate settings key (show actual key if stored, otherwise show placeholder/empty to let user know it uses the server default)
+            elements.settingsApiKey.value = localStorage.getItem('api_key') || '';
+            elements.settingsApiKey.placeholder = "Using server default key...";
         }
 
         // UI Handlers
@@ -820,11 +802,15 @@
             if (keyVal) {
                 state.apiKey = keyVal;
                 localStorage.setItem('api_key', keyVal);
-                showToast('Settings Saved', 'API authentication credentials updated.', 'success');
-                elements.settingsPanel.classList.remove('active');
+                showToast('Settings Saved', 'API authentication key updated.', 'success');
             } else {
-                showToast('Error', 'Please fill in a valid API Key.', 'error');
+                state.apiKey = serverApiKey;
+                localStorage.removeItem('api_key');
+                elements.settingsApiKey.value = '';
+                elements.settingsApiKey.placeholder = "Using server default key...";
+                showToast('Settings Cleared', 'Reverted to the server default API key.', 'success');
             }
+            elements.settingsPanel.classList.remove('active');
         }
 
         // Search flow

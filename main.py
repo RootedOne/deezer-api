@@ -112,7 +112,9 @@ async def get_index():
     if not index_file.exists():
         return HTMLResponse("index.html not found", status_code=404)
     with open(index_file, "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        content = f.read()
+        content = content.replace("{{SERVER_API_KEY}}", API_KEY)
+        return HTMLResponse(content)
 
 # Key hint helper endpoint for frontend to prefill the key if running locally with default credentials
 @app.get("/api/key-hint")
